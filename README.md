@@ -1,5 +1,5 @@
 # Pioneer music bot
-Pioneer is a discord music bot written in node.js
+Pioneer is a discord music bot written in node.js  
 As of now it is able to:
 + search videos by URL or query and play them on voice channels
 + queue songs to play
