@@ -1,482 +1,397 @@
-const Discord = require('discord.js');
-const client = new Discord.Client();
+'use strict';
 
-const ytdl = require("ytdl-core");
-const yts = require("yt-search");
-const validURL = require('valid-url');
-const fs = require('fs');
+const { Client } = require('discord.js');
+const client = new Client();
 
-const authdata = require('./authdata.json');
-const messages = require('./messages.js');
-const prefix = messages.prefix;
+const fs = require("fs");
+const { getURLVideoID } = require('ytdl-core');
 
-var serverdata = {};
-var queue = {};
+const { token: TOKEN } = require('./data/authdata.json');
+const MessageProvider = require('./src/MessageProvider.js');
+const Utils =  require('./src/Utils.js');
+
+const PREFIX = MessageProvider.prefix;
+const DATA_PATH = "./data/serverdata.json";
+
+let queue = new Utils.Queue();
+let serverdata = {};
 
 client.on('ready', () => {
 	console.log(`${client.user.username} successfully logged in`);
 
-  // check if serverdata file exists
-  fs.access('serverdata.json', fs.constants.F_OK, async (err) => {
-    if(err){
-      // create it if not
-      console.log('No serverdata file found, creating new one');
-      await writeserverdata();
-    }
-    // save file data to variable
-    readserverdata();
-  });
-
-  // sync variable with file every 5 minutes
-  setInterval(writeserverdata, 1000*60*5);
+	// check if serverdata file exists
+	fs.access(DATA_PATH, fs.constants.F_OK, async (err) => {
+		if(err) {
+			// create it if not
+			console.log('No serverdata file found, creating new one');
+			await writeserverdata();
+		}
+		// save file data to variable
+		readserverdata();
+	});
+	
+	// sync variable with file every 5 minutes
+	const FIVE_MINUTES = 1000*60; //*5
+	setInterval(writeserverdata, FIVE_MINUTES);
 });
 
 // save data to json file
 const writeserverdata = async () => {
-  fs.writeFile('./serverdata.json', JSON.stringify(serverdata, null ,2), (err) => {
-    if(err) console.log("couldn't save serverdata\nerror: " + err);
-  });
-}
+	fs.writeFile(DATA_PATH, JSON.stringify(serverdata, null ,2), (err) => {
+	  if(err) console.log("couldn't save serverdata. Error:\n" + err);
+	});
+	console.log("sync time baby!");
+  }
 
 // read data from json file
 const readserverdata = async () => {
-  fs.readFile('./serverdata.json', (err, data) => {
-    if(err){
-      console.log("couldn't read serverdata");
-      throw err;
-    }
-    serverdata = JSON.parse(data);
-  });
+	fs.readFile(DATA_PATH, (err, data) => {
+	  if(err){
+		console.log("couldn't read serverdata");
+		throw err;
+	  }
+	  serverdata = JSON.parse(data);
+	});
 }
 
-// server message listener
-client.on('message', async message => {
+client.on('message', async (message) => {
+	
+	// Return if message was sent by a bot or if doesn't start with a prefix.
+	if(message.author.bot) return;
+	if(!message.content.startsWith(PREFIX)) return;
 
-  // return if message was sent by a bot or if doesn't start with a prefix
-  if(message.author.bot) return;
-  if(!message.content.startsWith(prefix)) return;
+	// slice prefix, divide message into words
+	let content = message.content.trim().split(' ');
+	let action = content[0].slice(PREFIX.length).toLowerCase();
+	content = content.slice(1);
 
-  // slice prefix, divide message into words
-  let content = message.content.trim().split(" ");
-  let action = content[0].slice(prefix.length);
-  content = content.slice(1);
+	const ID = message.guild.id;
 
-  const id = message.guild.id;
+	switch(action){
 
-  switch(action){
+		case 'help': case 'h': {
+			message.channel.send(MessageProvider.help());
+			break;
+		}
 
-    case "tracking": case "t":
-      tracking(message, content[0]);
-      break;
+		case 'tracking': case 't': {
+			const TRACKING = ID in serverdata;
+			let serverQueue = queue.get(ID);
 
-    case "vote": case "v":
-      vote(message, content[0]);
-      break;
-      
-    case "play": case "p":
-      // add song to queue
-      const result = await queueAdd(message, content, prefix.length+action.length+1);
-      if(!result) return;
+			if(content[0] == undefined){
+				if(TRACKING) message.channel.send(MessageProvider.trackingEnabled());
+				else message.channel.send(MessageProvider.trackingDisabled());
+				return;
+			}
 
-      // if no song is playing start playing first song form queue
-      if(queue[id].playing == false){
-        queuePlay(message);
-      }
-      else{
-        // else send a message to confirm song being added
-        const pos = queue[id].songs.length-1;
-        queue[id].tc.send("**:memo:  Added to queue: **" + queue[id].songs[pos].title +
-        "\nQueue position: **" + pos + "**");
-      }
-      break;
+			if(content[0] == "enable" || content[0] == "1"){
+				if(TRACKING){
+					message.channel.send(MessageProvider.trackingAlreadySet(true));
+					return;
+				}
+				serverdata[ID] = {};
+				if(serverQueue != null){
+					serverQueue.tracking = true;
+					if(serverQueue.length() > 0){
+						Utils.addSongToData(ID, serverQueue.front(), serverdata);
+					}
+				}
+				message.channel.send(MessageProvider.trackingToggled(true));
+				return;
+			}
+			else if(content[0] == "disable" || content[0] == "0"){
+				if(!TRACKING){
+					message.channel.send(MessageProvider.trackingAlreadySet(false));
+					return;
+				}
 
-    case "skip": case "s": // optional argument how many to skip
-      if(content.length > 0) queueSkip(message, parseInt(content[0]));
-      else queueSkip(message);
-      break;
+				delete serverdata[ID];
+				if(serverQueue != null) serverQueue.tracking = false;
+				message.channel.send(MessageProvider.trackingToggled(false));
+				return;
+			}
+			message.channel.send(MessageProvider.noCommand(message, 2));
+			break;
+		}
 
-    case "queue": case "q": // optional argument how many to show
-      if(content.length > 0) queueList(message, parseInt(content[0]));
-      else queueList(message);
-      break;
+		case 'vote': case 'v': {
+			if(!await checkVoice(ID, message)) return;
+			let serverQueue = queue.get(ID);
 
-    case "remove": case "r": // needs positon in queue specified and optional argument how many to remove
-      if(content.length > 1) queueRemove(message, parseInt(content[0]), parseInt(content[1]));
-      else if(content.length > 0) queueRemove(message, parseInt(content[0]));
-      else message.channel.send(":x:  you need to specyfy queue positon!")
-      break;
+			if(!serverQueue.tracking){
+				message.channel.send(MessageProvider.trackingRequired());
+				return
+			}
 
-    case "leave": case "l":
-      leaveVoiceChannel(message);
-      break;
+			if(serverQueue.length() == 0 || !serverQueue.playing) {
+				message.channel.send(MessageProvider.notPlaying());
+				return;
+			}
 
-    case "join": case "j":
-      joinVoiceChannel(message);
-      break;
+			let songId = getURLVideoID(serverQueue.front().url);
+			let userId = message.author.id;
+			let oldVote = serverdata[ID][songId].votes[userId];
+			let newVote = parseInt(content[0]);
+			let voteEnum = { yes: 1, no: -1, remove: 0 };
 
-    case "help": case "h":
-      message.channel.send(messages.get("help"));
-      break;
+			if(content[0] === undefined){
+				// show vote
+				if(oldVote === undefined) message.channel.send(MessageProvider.noVote());
+				else message.channel.send(MessageProvider.vote(oldVote));
+				return;
+			}
 
-    default:
-      noCommand(message);
-      break;
-  }
+			if(isNaN(newVote)) newVote = voteEnum[content[0].toLowerCase()];
+			if(newVote === undefined){
+				message.channel.send(MessageProvider.noCommand(message, 2));
+				return;
+			}
+			if(newVote > 1 || newVote < -1){
+				message.channel.send(MessageProvider.outOfScope());
+				return;
+			}
+
+			message.channel.send(await setVote(oldVote, newVote, ID, songId, userId));
+			break;
+		}
+			  
+		case 'play': case 'p': {
+			if(!await checkVoice(ID, message)) return;
+
+			const ACTION_LENGTH = PREFIX.length + action.length + 1;
+			let serverQueue = queue.get(ID);
+
+			if(content.length <= 0) {
+				if(serverQueue.length() > 0 && serverQueue.playing){
+					let song = serverQueue.front();
+					let dataString = (serverQueue.tracking) ? MessageProvider.trackingData(ID, getURLVideoID(song.url), serverdata) : "";
+					message.channel.send(MessageProvider.playing(song) + dataString);
+				}
+				else {
+					message.channel.send(MessageProvider.notPlaying());
+				}
+				return;
+			}
+
+			let song = await Utils.search(message.content.slice(ACTION_LENGTH), message.member);
+			
+			if(song == null){
+				message.channel.send(MessageProvider.noSong());
+				return;
+			}
+
+			if(serverQueue.contains(song)){
+				message.channel.send(MessageProvider.duplicate());
+				return;
+			}
+
+			let position = serverQueue.push(song);
+		
+			if(position == 1) {
+				serverQueue.playing = true;
+				Utils.play(serverQueue, serverdata);
+				return;
+			}
+			message.channel.send(MessageProvider.addedToQueue(song, position - 1));
+			break;
+		}
+
+		case 'skip': case 's': {
+			if(!await checkVoice(ID, message)) return;
+
+			let serverQueue = queue.get(ID);
+			let count = parseInt(content[0]);
+			let length = serverQueue.length();
+
+			// input checking
+			if(content[0] === undefined) {
+				count = 1;
+			}
+			if(isNaN(count)) {
+				message.channel.send(MessageProvider.noCommand(message, 2));
+				return;
+			}
+			if(count > length || count < 1){
+				message.channel.send(MessageProvider.outOfScope("skip"));
+				return;
+			}
+			message.channel.send(MessageProvider.skipped(count, serverQueue.front()));
+			serverQueue.remove(0, count);
+			Utils.play(serverQueue, serverdata);
+			break;
+		}
+
+		case 'queue': case 'q': {
+			if(!await checkVoice(ID, message)) return;
+			let serverQueue = queue.get(ID);
+
+			let count = parseInt(content[0]);
+			if(isNaN(count)) count = 10;
+			// clamp 
+			count = Math.min(Math.max(count, 0), serverQueue.length());
+
+			if(serverQueue.toString().length > 0){
+				message.channel.send(MessageProvider.queue(serverQueue, count));
+			}
+			else{
+				message.channel.send(MessageProvider.emptyQueue());
+			}
+			break;
+		}
+		
+		case 'remove': case 'r': {
+			if(!await checkVoice(ID, message)) return;
+
+			let serverQueue = queue.get(ID);
+			let position = parseInt(content[0]);
+			let count = parseInt(content[1]);
+			let length = serverQueue.length();
+
+			// input checking
+			if(isNaN(position)){
+				message.channel.send(MessageProvider.noCommand(message, 2));
+				return;
+			}
+			if(content[1] === undefined) count = 1;
+			if(isNaN(count)){
+				message.channel.send(MessageProvider.noCommand(message, 3));
+				return;
+			}
+			if(position > length || position + count > length || position < 1 || count < 1){
+				message.channel.send(MessageProvider.outOfScope("remove"));
+				return;
+			}
+			let songs = serverQueue.remove(position, count);
+			message.channel.send(MessageProvider.removed(songs[0], count));
+			break;
+		}
+
+		case 'leave': case 'l': {
+			let botVoice = (await client.guilds.fetch(ID, 0, 1)).voice;
+			let userVoice = message.member.voice;
+
+			if(botVoice === undefined || botVoice.channelID === null) {
+				message.channel.send(MessageProvider.noVoiceChannel());
+				return;
+			}
+
+			if(userVoice === undefined || userVoice.channelID === null || botVoice.channelID != userVoice.channelID) {
+				if(botVoice.channel.members.size > 1){
+					message.channel.send(MessageProvider.busy(message.member, botVoice.channel));
+					return;
+				}
+			}
+
+			botVoice.channel.leave();
+			let serverQueue = queue.get(ID);
+			queue.remove(serverQueue);
+			break;
+		}
+
+		case 'join': case 'j': {
+			let userVoice = message.member.voice;
+			let botVoice = (await client.guilds.fetch(ID, 0, 1)).voice;
+
+			if(userVoice === undefined || userVoice.channelID === null) {
+				message.channel.send(MessageProvider.joinChannel(message.author));
+				return;
+			}
+
+			if(!(botVoice === undefined || botVoice.channelID === null)) {
+				if(botVoice.channelID != userVoice.channelID && botVoice.channel.members.size > 1){
+					message.channel.send(MessageProvider.busy(message.member, botVoice.channel));
+					return;
+				}
+			}
+
+			if(queue.get(ID) === null){
+				queue.add(ID, new Utils.ServerQueue(ID, userVoice, message.channel, (ID in serverdata)));
+			}
+			
+			queue.get(ID).voice = (await userVoice.channel.join()).voice;
+			break;
+		}
+
+		case "pause": {
+			if(!await checkVoice(ID, message)) return;
+			let serverQueue = queue.get(ID);
+			if(serverQueue.length() > 0){
+				Utils.pause(serverQueue);
+			}
+			break;
+		}
+
+		default: {
+			message.channel.send(MessageProvider.noCommand(message, 1));
+			break;
+		}
+	}
 });
 
-// sends no command message
-const noCommand = async (message, length = 1) => {
+const checkVoice = async (ID, message) => {
+	// Client's and user's VoiceStates.
+	let botVoice = await client.guilds.fetch(ID, 0, 1).voice;
+	let userVoice = message.member.voice;
+	
+	// Check if user is in Voice Channel.
+	if(userVoice === undefined || userVoice.channelID === null) {
+		message.channel.send(MessageProvider.joinChannel(message.author));
+		return false;
+	}
+	
+	// Check if Client is in Voice Channel.
+	if(botVoice === undefined || botVoice.channelID === null) {
+		// If not then join user's Voice Channel
+		botVoice = (await userVoice.channel.join()).voice;
+	}
 
-  let content = message.content.trim().split(" ");
-  content[0].slice(prefix.length);
+	// Send a message if Client's and user's Voice Channels are different and return.
+	if(botVoice.channelID != userVoice.channelID) {
+		message.channel.send(MessageProvider.joinBotChannel(message.author, botVoice.channel));
+		return false;
+	}
+	
+	// Create ServerQueue if doesn't exist.
+	if(queue.get(ID) === null) {
+		queue.add(ID, new Utils.ServerQueue(ID, botVoice, message.channel, (ID in serverdata)));
+	}
 
-  let msg = "No command:";
-  for(let iter = 0; iter < Math.min(length, content.length); iter += 1){
-    msg = msg + " " + content[iter].toString();
-  }
-  msg += ", type: `" + prefix + "help` for command list";
-  message.channel.send(msg);
+	return true;
 }
 
-// utility for vote function
-const setVote = async (id, songid, user, oldVote, newVote) => {
-  let msg = "";
+const setVote = async (oldVote, newVote, id, songId, userId) => {
 
-  if(oldVote == 0){
-    msg = ":white_check_mark:  Vote set";
-    serverdata[id][songid].score += newVote;
-    serverdata[id][songid].votes[user] = newVote;
-    msg += ", song's voting score is now: **" + (serverdata[id][songid].score) + "**";
-  }
-  else if(oldVote != newVote){
-    msg = ":white_check_mark:  Vote changed";
-    serverdata[id][songid].score = serverdata[id][songid].score - oldVote + newVote;
-    serverdata[id][songid].votes[user] = newVote;
-    msg += ", song's voting score is now: **" + (serverdata[id][songid].score) + "**";
-  }
-  else{
-    let voteString;
-    if(newVote == 1) voteString = "yes";
-    else voteString = "no";
-    msg = "You already voted **" + voteString +"** for this song";
-  }
-  queue[id].tc.send(msg);
+	if(oldVote === undefined) {
+		if(newVote == 0) {
+			// no vote to remove
+			return MessageProvider.cantRemoveVote();
+		}
+		else {
+			// set vote
+			serverdata[id][songId].score += newVote;
+			serverdata[id][songId].votes[userId] = newVote;
+			return MessageProvider.voteSet(newVote, serverdata[id][songId].score);
+		}
+	}
+	else{
+		if(newVote == 0) {
+			// remove vote
+			serverdata[id][songId].score -= oldVote;
+			delete serverdata[id][songId].votes[userId];
+			return MessageProvider.voteRemoved(serverdata[id][songId].score);
+		}
+		else if(newVote == oldVote) {
+			// already voted
+			return MessageProvider.alreadyVoted(newVote);
+		}
+		else {
+			// vote changed
+			serverdata[id][songId].score +=  newVote - oldVote;
+			serverdata[id][songId].votes[userId] = newVote;
+			return MessageProvider.voteChanged(newVote, serverdata[id][songId].score);
+		}
+	}
 }
 
-const vote = async (message, action) => {
-
-  const result = await queueCheck(message, true);
-  if(!result) return false;
-  const id = message.guild.id;
-
-  if(queue[id].tracking){ // if tracking enabled
-    if(queue[id].songs.length > 0){ // if song is playing
-
-      const songid = ytdl.getURLVideoID(queue[id].songs[0].url);
-      const user = message.author.id;
-      let vote;
-
-      // get user vote (if exists)
-      if(user in serverdata[id][songid].votes) vote = serverdata[id][songid].votes[user];
-      else vote = 0;
-
-      if(action != undefined){
-        if(action == "yes" || action == 1){
-          setVote(id, songid, user, vote, 1);
-        }
-        else if(action == "no" || action == -1){
-          setVote(id, songid, user, vote, -1);
-        }
-        else if(action == "remove" || action == 0){
-          if(vote != 0){
-            queue[id].tc.send(":white_check_mark:  Vote removed");
-            serverdata[id][songid].score -= vote;
-            delete serverdata[id][songid].votes[user];
-          }
-          else queue[id].tc.send("You didn't vote for this song before");
-        }
-        else{
-          queue[id].tc.send(":x:  Incorrect vote");
-        }
-      }
-      else{
-        if(vote == -1) queue[id].tc.send("Your current vote is **no**");
-        else if(vote == 1) queue[id].tc.send("Your current vote is **yes**");
-        else queue[id].tc.send("You didn't vote for this song before");
-      }
-    }
-    else{
-      queue[id].tc.send(":x:  No song playing");
-    }
-  }
-  else{
-    queue[id].tc.send(":x:  Tracking is disabled, enable tracking to vote");
-  }
-}
-
-// enables or disables saving additional information to serverdata
-// without action specified shows current tracking option (on/off)
-const tracking = async (message, action) => {
-  const id = message.guild.id;
-
-  if(action == undefined){
-    if(id in serverdata){
-      message.channel.send(messages.get("trackingEnabled"));
-    }
-    else{
-      message.channel.send(messages.get("trackingDisabled"));
-    }
-  }
-  else{
-    if(action == "enable" || action == 1){
-      if(!(id in serverdata)){
-        console.log('creating server ' + id + ' in serverdata');
-        message.channel.send(":white_check_mark:  **Tracking enabled**");
-        serverdata[id] = {};
-
-        // if song is playing add it to serverdata
-        // this is to prevent errors with vote function
-        // when tracking was enabled after start of the song
-        if(queue[id]){
-          queue[id].tracking = true;
-          if(queue[id].songs.length > 0){
-            const songid = ytdl.getURLVideoID(queue[id].songs[0].url);
-            serverdata[id][songid] = { "title": queue[id].songs[0].title, "count": 1, "votes": {}, "score": 0 };
-          }
-        }
-      }
-      else message.channel.send("Tracking is already enabled");
-    }
-    else if(action == "disable" || action == 0){
-      if(id in serverdata){
-        console.log('removing server ' + id + ' from serverdata');
-        message.channel.send(":negative_squared_cross_mark:  **Tracking disabled**");
-        delete serverdata[id];
-        if(queue[id]) queue[id].tracking = false;
-      }
-      else message.channel.send("Tracking is already disabled");
-    }
-    else noCommand(message, 2);
-  }
-}
-
-const queueCheck = async (message, join = false) => {
-  const id = message.guild.id;
-  
-  // check if queue exists
-  if(!(id in queue)){
-    if(join){
-      const result = await joinVoiceChannel(message);
-      if(!result) return false;
-    }
-    else return false;
-  }
-
-  // if bot is in voice chat
-  if(queue[id].vc){
-    // check if user is in the same vioce chat as bot
-    if(message.member.voice.channelID != queue[id].vc.channelID){ // user channel can be undefined but still returns false
-      message.channel.send(message.author.toString() + " you need to join " + queue[id].vc.channel.toString() + " to use this command!");
-      return false;
-    }
-    else return true;
-  }
-  // if user is in voice chat
-  else if(!message.member.voice.channel){
-    message.channel.send(message.author.toString() + " you need to be in a voice channel to use this command!");
-    return false;
-  }
-}
-
-const joinVoiceChannel = async (message) => {
-  // join user if user is in voice chat
-  if(message.member.voice.channel){
-    await message.member.voice.channel.join();
-    const id = message.guild.id;
-    // create song queue if doesn't exist
-    if(queue[id] == undefined){
-      queue[id] = { "vc": null, "tc": null, "songs": [], "playing": false, "tracking": (id in serverdata) }
-    }
-    queue[id].vc = message.guild.voice;
-    queue[id].tc = message.channel;
-    return true;
-  }
-  else{
-    message.channel.send(message.author.toString() + " you need to be in a voice channel to use this command!");
-    return false;
-  }
-}
-
-const leaveVoiceChannel = async (message) => {
-  // delete queue and leave voice chat
-  const id = message.guild.id;
-  if(queue[id]) delete queue[id];
-
-  if(message.guild.voice){
-    await message.guild.voice.channel.leave();
-  }
-}
-
-const queueAdd = async (message, content, prefixLength) => {
-  const id = message.guild.id;
-  const result = await queueCheck(message, true);
-  if(!result) return false;
-
-  // check if message has url
-  if(validURL.isUri(content[0])){
-    // search and add with url
-    const info = await yts({ videoId: ytdl.getURLVideoID(content[0]) });
-    for(song of queue[id].songs){
-      if(song.url == info.url){
-        queue[id].tc.send(":x:  Song is already in queue!");
-        return false;
-      }
-    }
-    queue[id].songs.push({ "title": info.title, "url": content[0], "requester": message.member, "duration": info.duration.timestamp });
-  }
-  else{
-    // serach and add with query
-    const query = await yts(message.content.slice(prefixLength));
-    for(song of queue[id].songs){
-      if(song.url == query.videos[0].url){
-        queue[id].tc.send(":x:  Song is already in queue!");
-        return false;
-      }
-    }
-    queue[id].songs.push({ "title": query.videos[0].title, "url": query.videos[0].url, "requester": message.member, "duration": query.videos[0].duration.timestamp });
-  }
-  return true;
-}
-
-const queuePlay = async (message) => {
-  const id = message.guild.id;
-  const result = await queueCheck(message);
-  if(!result) return;
-
-  // play first song form queue
-  if(queue[id].songs.length != 0){
-    queue[id].playing = true;
-
-    let msg = "**:notes:  Now Playing:** " + queue[id].songs[0].title + "\nRequested by: " + 
-    queue[id].songs[0].requester.displayName + "    Duration: [" + queue[id].songs[0].duration + "]";
-
-    if(queue[id].tracking){ 
-      const songid = ytdl.getURLVideoID(queue[id].songs[0].url);
-      if(!(songid in serverdata[id])){
-        serverdata[id][songid] = { "title": queue[id].songs[0].title, "count": 1, "votes": {}, "score": 0 };
-      }
-      else{
-        serverdata[id][songid].count += 1;
-      }
-      msg = msg + "\nTotal play count: **" + serverdata[id][songid].count + "**   Voting score: **" +
-      (serverdata[id][songid].score) + "**";
-    }
-
-    queue[id].tc.send(msg);
-
-    queue[id].vc.connection.play(ytdl(queue[id].songs[0].url, { filter: 'audioonly', quality: 'highestaudio'}))
-    .on("finish", () => {
-      // after song finishes play next one form queue
-      queue[id].songs.shift();
-      queuePlay(message);
-    });
-  }
-  else{
-    queue[id].playing = false;
-    // this is for skipping because skip forces new play but doesn't end current stream
-    // and with empty queue there is no new stream to override old one
-    if( queue[id].vc.connection.dispatcher){
-      queue[id].vc.connection.dispatcher.destroy();
-    }
-  }
-}
-
-const queueList = async (message, length = 10) => {
-  const id = message.guild.id;
-  const result = await queueCheck(message);
-  if(!result) return;
-
-  if(isNaN(length)){
-    noCommand(message, 2);
-    return;
-  }
-  
-  // if songs in queue (index 0 is currently playing song so it is not considered to be in queue)
-  if(queue[id].songs.length <= 1){
-    queue[id].tc.send(":page_with_curl: **No songs in queue**");
-    return;
-  }
-
-  const size = queue[id].songs.length;
-  if(length < 0) length = 0;
-
-  // construct message
-  let msg = ":page_with_curl:  **Songs in queue:**\n";
-  for(let iter = 1; iter < Math.min(size, length+1); iter += 1){
-    msg += iter.toString() + ". " + queue[id].songs[iter].title + "\n";
-  }
-  if(length < size){
-    msg += "*and " + (size-length-1).toString() + " more...*";
-  }
-
-  queue[id].tc.send(msg);
-}
-
-const queueSkip = async (message, count = 1) => {
-  const id = message.guild.id;
-  const result = await queueCheck(message);
-  if(!result) return;
-
-  if(isNaN(count)){
-    noCommand(message, 2);
-    return;
-  }
-
-  if(queue[id].songs.length == 0){
-    queue[id].tc.send(":x:  No song to skip");
-  }
-
-  if(count > 1){
-    queue[id].tc.send(":fast_forward:  Skipped " + Math.min(count, queue[id].songs.length) + " songs from queue");
-    queue[id].songs.splice(0, Math.min(count, queue[id].songs.length));
-  }
-  else if(count == 1){
-    queue[id].tc.send(":fast_forward:  Skipped: " + queue[id].songs[0].title);
-    queue[id].songs.shift();
-  }
-  else{
-    queue[id].tc.send(":x:  Can't skip " + count + " songs");
-    return;
-  }
-  queuePlay(message);
-}
-
-const queueRemove = async (message, pos, count = 1) => {
-  const id = message.guild.id;
-  const result = await queueCheck(message);
-  if(!result) return;
-
-  if(isNaN(pos) || isNaN(count)){
-    noCommand(message, 3);
-    return;
-  }
-  
-  if(pos >= queue[id].songs.length || pos < 1){
-    queue[id].tc.send(":x:  No such positon in queue");
-    return;
-  }
-  
-  if(count > 1){
-    queue[id].tc.send(":negative_squared_cross_mark:  Removed " + Math.min(count, queue[id].songs.length - pos) + " songs from queue");
-    queue[id].songs.splice(pos, Math.min(count, queue[id].songs.length - pos));
-  }
-  else if(count == 1){
-    queue[id].tc.send(":negative_squared_cross_mark:  Removed: " + queue[id].songs[pos].title);
-    queue[id].songs.splice(pos, 1);
-  }
-  else{
-    queue[id].tc.send(":x:  Can't remove " + count + " songs");
-  }
-}
-
-client.login(authdata.login);
+client.login(TOKEN);
+ 

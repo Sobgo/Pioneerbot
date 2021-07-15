@@ -1,6 +1,6 @@
 {
   "name": "pioneer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -12,7 +12,6 @@
     "@discordjs/opus": "^0.5.3",
     "discord.js": "^12.5.3",
     "ffmpeg-static": "^4.4.0",
-    "valid-url": "^1.0.9",
     "yt-search": "^2.9.0",
     "ytdl-core": "^4.8.3"
   }
