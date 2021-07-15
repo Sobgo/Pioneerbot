@@ -200,6 +200,7 @@ const play = async (queue, data) => {
 	});
 }
 
+// does not work because resume is buggy
 const pause = async (queue) => {
 	console.log(queue.playing);
 	if(queue.playing) queue.voice.connection.dispatcher.pause();
