@@ -7,7 +7,7 @@ As of now it is able to:
 + create playlists and track song's likes/dislikes form your discord server users
 
 for list of all commands you can type help in your discord server chat after bot succesfully connects  
-All commands need to be preceded by prefix, you can set prefix in `messages.js` default prefix is `$`
+All commands need to be preceded by prefix, you can set prefix in `MessageProvider.js` default prefix is `$`
 
 ## How to run
 open directory in terminal and run `npm install`  
