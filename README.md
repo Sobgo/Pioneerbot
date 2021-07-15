@@ -11,7 +11,7 @@ All commands need to be preceded by prefix, you can set prefix in `messages.js` 
 
 ## How to run
 open directory in terminal and run `npm install`  
-then paste your bot's token in `authdata.json`  
+then paste your bot's token in `data/authdata.json`  
 finally run `node index.js`  
 this will automatically create serverdata.json which will be used as long term memory for playlists  
 note: you need to enable tracking to actually use this feature  
