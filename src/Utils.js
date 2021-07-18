@@ -34,7 +34,7 @@ class Song {
 	 * // Logs: Song Title [duration]
 	 */
 	toString(){
-		return `${this.title} [${this.duration}]`;
+		return `${this.title} | [${this.duration}]`;
 	}
 }
 
@@ -208,7 +208,8 @@ const pause = async (queue) => {
 	queue.playing = !queue.playing;
 }
 
-const search = async (query, user) => {
+const search = async (query, user, position = 0) => {
+	console.log(query, position);
 	if(validateURL(query)){
 		try {
 			const info = await yts({ videoId: getURLVideoID(query) })
@@ -216,10 +217,11 @@ const search = async (query, user) => {
 		}
 		catch(err) { return null }
 	}
-	else{
+	else {
 		const info = await yts(query);
-		if(info.videos.length < 1) return null;
-		return new Song(info.videos[0].title, info.videos[0].url, info.videos[0].duration.timestamp, user);		
+		const length = info.videos.length;
+		if(length < 1 || position < 0|| position >= length) return null;
+		return new Song(info.videos[position].title, info.videos[position].url, info.videos[position].duration.timestamp, user);		
 	}
 }
 
@@ -233,9 +235,15 @@ const addSongToData = async (id, song, data) => {
 	}
 }
 
-// to do
-const searchList = async (query, user) => {
-	return;
+const searchList = async (query, user, count = 10) => {
+	if(validateURL(query)) return (await search(query, user)).toString();
+
+	const info = await yts(query);
+	if(info.videos.length < 1) return null;
+
+	return info.videos.slice(0, count).map((element, index) => {
+		return `${index + 1}. ${element.title} | [${element.timestamp}]` 
+	}).join('\n');
 }
 
 module.exports.Song = Song;
@@ -245,3 +253,4 @@ module.exports.play = play;
 module.exports.pause = pause;
 module.exports.search = search;
 module.exports.addSongToData = addSongToData;
+module.exports.searchList = searchList;

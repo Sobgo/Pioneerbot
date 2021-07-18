@@ -5,11 +5,11 @@ const client = new Client();
 
 const fs = require("fs");
 const { getURLVideoID } = require('ytdl-core');
-
-const { token: TOKEN } = require('./data/authdata.json');
 const MessageProvider = require('./src/MessageProvider.js');
 const Utils =  require('./src/Utils.js');
 
+const { token: TOKEN } = require('./data/authdata.json');
+const { outOfScope } = require('./src/MessageProvider.js');
 const PREFIX = MessageProvider.prefix;
 const DATA_PATH = "./data/serverdata.json";
 
@@ -26,12 +26,12 @@ client.on('ready', () => {
 			console.log('No serverdata file found, creating new one');
 			await writeserverdata();
 		}
-		// save file data to variable
+		// save data from the file to variable
 		readserverdata();
 	});
 	
 	// sync variable with file every 5 minutes
-	const FIVE_MINUTES = 1000*60; //*5
+	const FIVE_MINUTES = 1000*60*5;
 	setInterval(writeserverdata, FIVE_MINUTES);
 });
 
@@ -40,7 +40,6 @@ const writeserverdata = async () => {
 	fs.writeFile(DATA_PATH, JSON.stringify(serverdata, null ,2), (err) => {
 	  if(err) console.log("couldn't save serverdata. Error:\n" + err);
 	});
-	console.log("sync time baby!");
   }
 
 // read data from json file
@@ -54,6 +53,7 @@ const readserverdata = async () => {
 	});
 }
 
+// guild message listener
 client.on('message', async (message) => {
 	
 	// Return if message was sent by a bot or if doesn't start with a prefix.
@@ -66,6 +66,7 @@ client.on('message', async (message) => {
 	content = content.slice(1);
 
 	const ID = message.guild.id;
+	const ACTION_LENGTH = PREFIX.length + action.length + 1;
 
 	switch(action){
 
@@ -147,55 +148,43 @@ client.on('message', async (message) => {
 				return;
 			}
 			if(newVote > 1 || newVote < -1){
-				message.channel.send(MessageProvider.outOfScope());
+				message.channel.send(MessageProvider.outOfScope("vote"));
 				return;
 			}
 
 			message.channel.send(await setVote(oldVote, newVote, ID, songId, userId));
 			break;
 		}
-			  
-		case 'play': case 'p': {
-			if(!await checkVoice(ID, message)) return;
 
-			const ACTION_LENGTH = PREFIX.length + action.length + 1;
-			let serverQueue = queue.get(ID);
-
-			if(content.length <= 0) {
-				if(serverQueue.length() > 0 && serverQueue.playing){
-					let song = serverQueue.front();
-					let dataString = (serverQueue.tracking) ? MessageProvider.trackingData(ID, getURLVideoID(song.url), serverdata) : "";
-					message.channel.send(MessageProvider.playing(song) + dataString);
-				}
-				else {
-					message.channel.send(MessageProvider.notPlaying());
-				}
+		case 'search': case 'sr': {
+			if(content[0] === undefined) {
+				message.channel.send(MessageProvider.noQuery());
 				return;
 			}
-
-			let song = await Utils.search(message.content.slice(ACTION_LENGTH), message.member);
-			
-			if(song == null){
-				message.channel.send(MessageProvider.noSong());
-				return;
-			}
-
-			if(serverQueue.contains(song)){
-				message.channel.send(MessageProvider.duplicate());
-				return;
-			}
-
-			let position = serverQueue.push(song);
+			const result = await (Utils.searchList(message.content.slice(ACTION_LENGTH), message.member));
+			if(result.length == null) return;
+			message.channel.send(":mag:  **Results:**\n" + result);
+			break;
+		}
 		
-			if(position == 1) {
-				serverQueue.playing = true;
-				Utils.play(serverQueue, serverdata);
+		case 'search-play': case 'sp': {
+			if(content[0] == undefined || isNaN(parseInt(content[0]))){
+				message.channel.send(MessageProvider.noCommand(message, 1));
 				return;
 			}
-			message.channel.send(MessageProvider.addedToQueue(song, position - 1));
+			if(content[1] == undefined){
+				message.channel.send(MessageProvider.noQuery());
+				return;
+			}
+			play(ID, message, message.content.slice(ACTION_LENGTH + content[0].length), content[0]);
 			break;
 		}
 
+		case 'play': case 'p': {
+			play(ID, message, message.content.slice(ACTION_LENGTH));
+			break;
+		}
+		
 		case 'skip': case 's': {
 			if(!await checkVoice(ID, message)) return;
 
@@ -309,6 +298,8 @@ client.on('message', async (message) => {
 			}
 			
 			queue.get(ID).voice = (await userVoice.channel.join()).voice;
+			queue.get(ID).channel = message.channel;
+			message.channel.send(MessageProvider.channelSet(message.channel))
 			break;
 		}
 
@@ -393,5 +384,43 @@ const setVote = async (oldVote, newVote, id, songId, userId) => {
 	}
 }
 
+const play = async (ID, message, query, index = 1) => {
+	if(!await checkVoice(ID, message)) return;
+
+	let serverQueue = queue.get(ID);
+
+	if(query.length <= 0) {
+		if(serverQueue.length() > 0 && serverQueue.playing){
+			let song = serverQueue.front();
+			let dataString = (serverQueue.tracking) ? MessageProvider.trackingData(ID, getURLVideoID(song.url), serverdata) : "";
+			message.channel.send(MessageProvider.playing(song) + dataString);
+		}
+		else {
+			message.channel.send(MessageProvider.notPlaying());
+		}
+		return;
+	}
+
+	let song = await Utils.search(query, message.member, index-1);
+	
+	if(song == null){
+		message.channel.send(MessageProvider.noSong());
+		return;
+	}
+
+	if(serverQueue.contains(song)){
+		message.channel.send(MessageProvider.duplicate());
+		return;
+	}
+
+	let position = serverQueue.push(song);
+
+	if(position == 1) {
+		serverQueue.playing = true;
+		Utils.play(serverQueue, serverdata);
+		return;
+	}
+	message.channel.send(MessageProvider.addedToQueue(song, position - 1));
+}
+
 client.login(TOKEN);
- 

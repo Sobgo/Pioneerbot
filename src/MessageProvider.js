@@ -6,6 +6,18 @@ var MessageProvider = {
 
 	prefix: "$",
 
+	noQuery: function () {
+		return (
+			":x: You need to specify search query!"
+		);
+	},
+
+	channelSet: function (channel) {
+		return (
+			"Announcements channel set to " + channel.toString() + "."
+		);
+	},
+
 	removed: function (song, count) {
 		if(count > 1) {
 			return (
