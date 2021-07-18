@@ -176,7 +176,7 @@ client.on('message', async (message) => {
 				message.channel.send(MessageProvider.noQuery());
 				return;
 			}
-			play(ID, message, message.content.slice(ACTION_LENGTH + content[0].length), content[0]);
+			play(ID, message, message.content.slice(ACTION_LENGTH + content[0].length + 1), content[0]);
 			break;
 		}
 

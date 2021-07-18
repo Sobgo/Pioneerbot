@@ -209,7 +209,6 @@ const pause = async (queue) => {
 }
 
 const search = async (query, user, position = 0) => {
-	console.log(query, position);
 	if(validateURL(query)){
 		try {
 			const info = await yts({ videoId: getURLVideoID(query) })
