@@ -162,7 +162,10 @@ client.on('message', async (message) => {
 				return;
 			}
 			const result = await (Utils.searchList(message.content.slice(ACTION_LENGTH), message.member));
-			if(result.length == null) return;
+			if(result == null) {
+				message.channel.send(MessageProvider.noSong());
+				return;
+			}
 			message.channel.send(":mag:  **Results:**\n" + result);
 			break;
 		}
@@ -302,7 +305,7 @@ client.on('message', async (message) => {
 			message.channel.send(MessageProvider.channelSet(message.channel))
 			break;
 		}
-
+		/* does not work because dispatcher.resume is buggy 
 		case "pause": {
 			if(!await checkVoice(ID, message)) return;
 			let serverQueue = queue.get(ID);
@@ -311,6 +314,7 @@ client.on('message', async (message) => {
 			}
 			break;
 		}
+		*/
 
 		default: {
 			message.channel.send(MessageProvider.noCommand(message, 1));

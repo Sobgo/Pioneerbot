@@ -1,6 +1,6 @@
 'use strict';
 
-const { VoiceState, TextChannel } = require('discord.js');
+const { VoiceState, TextChannel, GuildMember } = require('discord.js');
 const { getURLVideoID, validateURL } = require('ytdl-core');
 const { playing, trackingData } = require('./MessageProvider.js');
 const ytdl = require('ytdl-core');
@@ -180,19 +180,29 @@ class Queue {
 	}
 }
 
-const play = async (queue, data) => {
+/**
+ * Plays first song form queue on voice channel using ytdl and Discord.play.
+ * @param {ServerQueue} queue - Guild's ServerQueue.
+ * @param {Object} [data] - Additional data to display in announcement used only when tracking is enabled.
+ */
+const play = async (queue, data = null) => {
 	let song = queue.front();
-	if(song == null){
+
+	if(song == null) {
+		// utility for skipping last song
 		if(queue.voice.connection.dispatcher != null) queue.voice.connection.dispatcher.destroy();
 		queue.playing = false;
 		return;
 	}
+
 	queue.playing = true;
-	if(queue.tracking){
-		addSongToData(queue.id, song, data);
-	}
+
+	// message
+	if(queue.tracking) addSongToData(queue.id, song, data);
 	let dataString = (queue.tracking) ? trackingData(queue.id, getURLVideoID(song.url), data) : ""
 	queue.channel.send(playing(song) + dataString);
+
+	// play and set listener to start new song after finish
 	queue.voice.connection.play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio' }))
 	.on('finish', () => {
 		queue.pop();
@@ -200,7 +210,8 @@ const play = async (queue, data) => {
 	});
 }
 
-// does not work because resume is buggy
+// does not work because resume is buggy 
+// TO DO: fix with @discord/voice
 const pause = async (queue) => {
 	console.log(queue.playing);
 	if(queue.playing) queue.voice.connection.dispatcher.pause();
@@ -208,8 +219,16 @@ const pause = async (queue) => {
 	queue.playing = !queue.playing;
 }
 
+/**
+ * Searches video on youtube with url or query.
+ * @param {String} query - Query which will be used to search a song.
+ * @param {GuildMember} user - Guild member that wants to search a song.
+ * @param {Number} [position] - Which search result to use. Default 0 (first).
+ * @returns Song object or null if no result was found
+ */
 const search = async (query, user, position = 0) => {
-	if(validateURL(query)){
+	if(validateURL(query)) { // query is url
+		// catch when query is invalid (or no result is found)
 		try {
 			const info = await yts({ videoId: getURLVideoID(query) })
 			return new Song(info.title, info.url, info.duration.timestamp, user);
@@ -224,17 +243,15 @@ const search = async (query, user, position = 0) => {
 	}
 }
 
-const addSongToData = async (id, song, data) => {
-	const songId = ytdl.getURLVideoID(song.url);
-	if(!(songId in data[id])){
-		data[id][songId] = { "title": song.title, "count": 1, "votes": {}, "score": 0 };
-	}
-	else{
-		data[id][songId].count += 1;
-	}
-}
-
+/**
+ * Searches multiple results with query.
+ * @param {String} query -  Query which will be used to search a song.
+ * @param {GuildMember} user - Guild member that wants to search a song.
+ * @param {Number} [count] - Number of results to show. Default 10.
+ * @returns List of first [count] results as string.
+ */
 const searchList = async (query, user, count = 10) => {
+	// if url then return 
 	if(validateURL(query)) return (await search(query, user)).toString();
 
 	const info = await yts(query);
@@ -245,11 +262,27 @@ const searchList = async (query, user, count = 10) => {
 	}).join('\n');
 }
 
+/**
+ * Utility function that adds song to serverdata.
+ * @param {String} id - Guild's ID.
+ * @param {Song} song - Song to add to serverdata
+ * @param {Object} data - Serverdata reference.
+ */
+const addSongToData = async (id, song, data) => {
+	const songId = ytdl.getURLVideoID(song.url);
+	if(!(songId in data[id])){
+		data[id][songId] = { "title": song.title, "count": 1, "votes": {}, "score": 0 };
+	}
+	else{
+		data[id][songId].count += 1;
+	}
+}
+
 module.exports.Song = Song;
 module.exports.ServerQueue = ServerQueue;
 module.exports.Queue = Queue;
 module.exports.play = play;
 module.exports.pause = pause;
 module.exports.search = search;
-module.exports.addSongToData = addSongToData;
 module.exports.searchList = searchList;
+module.exports.addSongToData = addSongToData;

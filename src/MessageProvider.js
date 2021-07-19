@@ -224,7 +224,8 @@ var MessageProvider = {
 	},
 
 	help: function () {
-	// to do rewrite this
+	// TO DO rewrite this, add sr
+
 		return (
 			'**Available commands:**\n' +
 			'**•** `'+ this.prefix +'tracking [enable/disable]` `(t [1/0])` *- enables or disables tracking additional data, type: `'+ this.prefix +'tracking` for more info*\n' +
@@ -236,7 +237,7 @@ var MessageProvider = {
 			'**•** `'+ this.prefix +'join` `(j)` *- connects bot to your voice chat*\n' +
 			'**•** `'+ this.prefix +'leave` `(l)` *- disconnects bot from voice chat*\n' +
 			'**•** `'+ this.prefix +'help` `(h)` *- shows this list*\n\n'+
-			'*All keywords can be repalced with shortened forms from brackets*'
+			'*All keywords can be repalced with shortened forms from brackets.*'
 		);
 	}
 }
