@@ -9,7 +9,6 @@ const MessageProvider = require('./src/MessageProvider.js');
 const Utils =  require('./src/Utils.js');
 
 const { token: TOKEN } = require('./data/authdata.json');
-const { outOfScope } = require('./src/MessageProvider.js');
 const PREFIX = MessageProvider.prefix;
 const DATA_PATH = "./data/serverdata.json";
 
