@@ -12,17 +12,20 @@ All commands need to be preceded by prefix, you can set prefix in `MessageProvid
 ## How to run
 open directory in terminal and run `npm install`  
 then paste your bot's token in `data/authdata.json`  
-finally run `node index.js`  
-this will automatically create serverdata.json which will be used as long term memory for playlists  
-note: you need to enable tracking to actually use this feature  
-also make sure that your bot has all necessary premissions if you're not sure which just give it admin  
+finally run `node .`  
+This will automatically create serverdata.json which will be used as long term memory for playlists.  
+Note: You need to enable tracking with $tracking on your discord server to actually save playlists.  
+Also make sure that your bot has all necessary premissions if you're not sure which just give it admin.  
 
 ## TO DO
-this is not a final version and you can expect the following features to be added in near future:
-+ playing songs from serverdata
-+ searching songs with multiple results to choose from
+This is not a final version and you can expect the following features to be added in near future:
++ retrieving data form playlists (such as most liked song, length...)
++ playing songs from playlists
++ creating custom playlists
++ ~~searching songs with multiple results to choose from~~ DONE
 
-Also if you find any bugs feel free to report them or make pull requests
+## Bug reports and contributing
+If you find any bugs feel free to report them using guthub issues and if you want to help you can make pull requests. I put some of my ideas for improvements in project called "improvements".
 
 ## License
-This project in under MIT license, check `LICENSE` for more information
+This project in under MIT license, check `LICENSE` for more information.
