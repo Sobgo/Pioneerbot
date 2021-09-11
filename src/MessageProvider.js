@@ -4,7 +4,15 @@
 
 var MessageProvider = {
 
-	prefix: "$",
+	prefix: "!",
+
+	loop: function (state) {
+
+		let stateString = (state) ? "enabled" : "disabled";
+		return (
+			`:arrows_counterclockwise:  **Loop ${ stateString }!**`
+		);
+	},
 
 	noQuery: function () {
 		return (
@@ -223,8 +231,21 @@ var MessageProvider = {
 		);
 	},
 
+	dm: function() {
+		return (
+			'Hey! I\'m Pioneer a discord music bot! I can play music for you.\n' +
+			'You just need to join same server with me and type one of the commands from list below:\n\n'
+		);
+	},
+
+	info: function() {
+		return (
+			'\nFor list of commands type: `'+ this.prefix +'help`'
+		);
+	},
+
 	help: function () {
-	// TO DO rewrite this, add sr
+	// TO DO rewrite this, add sr, sp, loop
 
 		return (
 			'**Available commands:**\n' +

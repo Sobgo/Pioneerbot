@@ -5,58 +5,81 @@ const client = new Client();
 
 const fs = require("fs");
 const { getURLVideoID } = require('ytdl-core');
+const { join: joinPath} = require('path');
+
 const MessageProvider = require('./src/MessageProvider.js');
-const Utils =  require('./src/Utils.js');
+const Utils = require('./src/Utils.js');
 
 const { token: TOKEN } = require('./data/authdata.json');
+const DATA_PATH = joinPath(__dirname, "/data/serverdata.json");
 const PREFIX = MessageProvider.prefix;
-const DATA_PATH = "./data/serverdata.json";
 
 let queue = new Utils.Queue();
-let serverdata = {};
+let serverdata;
 
 client.on('ready', () => {
 	console.log(`${client.user.username} successfully logged in`);
-
-	// check if serverdata file exists
-	fs.access(DATA_PATH, fs.constants.F_OK, async (err) => {
-		if(err) {
-			// create it if not
-			console.log('No serverdata file found, creating new one');
-			await writeserverdata();
-		}
-		// save data from the file to variable
-		readserverdata();
-	});
-	
-	// sync variable with file every 5 minutes
-	const FIVE_MINUTES = 1000*60*5;
-	setInterval(writeserverdata, FIVE_MINUTES);
 });
 
-// save data to json file
-const writeserverdata = async () => {
-	fs.writeFile(DATA_PATH, JSON.stringify(serverdata, null ,2), (err) => {
-	  if(err) console.log("couldn't save serverdata. Error:\n" + err);
-	});
-  }
+const init = () => {
 
-// read data from json file
-const readserverdata = async () => {
-	fs.readFile(DATA_PATH, (err, data) => {
-	  if(err){
-		console.log("couldn't read serverdata");
-		throw err;
-	  }
-	  serverdata = JSON.parse(data);
-	});
+	const FIVE_MINUTES = 1000*60*5;
+
+	/* 
+	 * Initial write and read are synchronous because 
+	 * serverdata needs to be loaded before first command
+	 */
+
+	try {
+		// check if serverdata file exists
+		fs.accessSync(DATA_PATH, fs.constants.R_OK | fs.constants.W_OK);
+	} 
+	catch (err) {
+		console.log('No serverdata file found, creating new one...');
+		// create it if not
+		try {
+			fs.writeFileSync(DATA_PATH, new Object);
+			console.log("New serverdata created!");
+		}
+		catch {
+			console.log("Couldn't create serverdata file.");
+			return;
+		}
+	}
+	// save serverdata to variable
+	serverdata = JSON.parse(fs.readFileSync(DATA_PATH));
+
+	// login to discord
+	client.login(TOKEN);
+
+	// sync variable with file every 5 minutes
+	setInterval(
+		() => {
+			fs.writeFile(DATA_PATH, JSON.stringify(serverdata, null ,2), (err) => {
+				if(err) console.log("couldn't save serverdata. Error:\n" + err);
+			}) 
+		}, FIVE_MINUTES
+	);
 }
 
-// guild message listener
+// message listener
 client.on('message', async (message) => {
 	
-	// Return if message was sent by a bot or if doesn't start with a prefix.
+	// Return if message was sent by a bot
 	if(message.author.bot) return;
+
+	// if message is DM
+	if(message.guild === null) {
+		message.author.send(MessageProvider.dm() + MessageProvider.help());
+		return;
+	}
+
+	// if massage @mentions bot
+	if(message.mentions.users.has(client.user.id)) {
+		message.channel.send(MessageProvider.info());
+		return;
+	}
+
 	if(!message.content.startsWith(PREFIX)) return;
 
 	// slice prefix, divide message into words
@@ -301,9 +324,10 @@ client.on('message', async (message) => {
 			
 			queue.get(ID).voice = (await userVoice.channel.join()).voice;
 			queue.get(ID).channel = message.channel;
-			message.channel.send(MessageProvider.channelSet(message.channel))
+			message.channel.send(MessageProvider.channelSet(message.channel));
 			break;
 		}
+
 		/* does not work because dispatcher.resume is buggy 
 		case "pause": {
 			if(!await checkVoice(ID, message)) return;
@@ -314,6 +338,16 @@ client.on('message', async (message) => {
 			break;
 		}
 		*/
+
+		case "loop": {
+			if(!await checkVoice(ID, message)) return;
+			
+			let serverQueue = queue.get(ID);
+			serverQueue.loop = !serverQueue.loop;
+
+			message.channel.send(MessageProvider.loop(serverQueue.loop));
+			break;
+		}
 
 		default: {
 			message.channel.send(MessageProvider.noCommand(message, 1));
@@ -426,4 +460,4 @@ const play = async (ID, message, query, index = 1) => {
 	message.channel.send(MessageProvider.addedToQueue(song, position - 1));
 }
 
-client.login(TOKEN);
+init();

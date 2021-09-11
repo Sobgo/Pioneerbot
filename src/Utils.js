@@ -5,6 +5,7 @@ const { getURLVideoID, validateURL } = require('ytdl-core');
 const { playing, trackingData } = require('./MessageProvider.js');
 const ytdl = require('ytdl-core');
 const yts = require('yt-search');
+const fs = require("fs");
 
 /**
  * @class
@@ -49,15 +50,17 @@ class ServerQueue {
 	 * @param {VoiceState} voice - Client's VoiceState
 	 * @param {TextChannel} channel - The channel that messages will be sent to 
 	 * @param {Boolean} [tracking] - Whether tracking is enabled for this Guild
-	 * @param {Boolean} [playing] - Whether song is currently playing 
+	 * @param {Boolean} [playing] - Whether song is currently playing
+	 * @param {Boolean} [loop] - Whether to play song in loop
 	 */
-	constructor(id, voice, channel, tracking = false, playing = false) {
+	constructor(id, voice, channel, tracking = false, playing = false, loop = false) {
 		this.id = id;
 		this.voice = voice;
 		this.channel = channel;
 		this.songs = [];
 		this.playing = playing;
 		this.tracking = tracking;
+		this.loop = loop;
 	}
 
 	/**
@@ -205,7 +208,9 @@ const play = async (queue, data = null) => {
 	// play and set listener to start new song after finish
 	queue.voice.connection.play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio' }))
 	.on('finish', () => {
-		queue.pop();
+		if(!queue.loop) { 
+			queue.pop();
+		}
 		play(queue, data);
 	});
 }
