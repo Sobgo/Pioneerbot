@@ -5,7 +5,7 @@ const client = new Client();
 
 const fs = require("fs");
 const { getURLVideoID } = require('ytdl-core');
-const { join: joinPath} = require('path');
+const { join: joinPath } = require('path');
 
 const MessageProvider = require('./src/MessageProvider.js');
 const Utils = require('./src/Utils.js');
@@ -19,6 +19,15 @@ let serverdata;
 
 client.on('ready', () => {
 	console.log(`${client.user.username} successfully logged in`);
+});
+
+client.on('voiceStateUpdate', (oldState, newState) => {
+	if (oldState.member.id != client.user.id) return;
+	if (oldState.channelID != null && newState.channelID == null) {
+		const ID = oldState.guild.id;
+		clearInterval(queue[ID].timer);
+		queue.remove(ID);
+	}
 });
 
 const init = () => {
@@ -49,7 +58,7 @@ const init = () => {
 	// save serverdata to variable
 	serverdata = JSON.parse(fs.readFileSync(DATA_PATH));
 
-	// login to discord
+	// log in to discord
 	client.login(TOKEN);
 
 	// sync variable with file every 5 minutes
@@ -66,21 +75,21 @@ const init = () => {
 client.on('message', async (message) => {
 	
 	// Return if message was sent by a bot
-	if(message.author.bot) return;
+	if (message.author.bot) return;
 
 	// if message is DM
-	if(message.guild === null) {
+	if (message.guild === null) {
 		message.author.send(MessageProvider.dm() + MessageProvider.help());
 		return;
 	}
 
 	// if massage @mentions bot
-	if(message.mentions.users.has(client.user.id)) {
+	if (message.mentions.users.has(client.user.id)) {
 		message.channel.send(MessageProvider.info());
 		return;
 	}
 
-	if(!message.content.startsWith(PREFIX)) return;
+	if (!message.content.startsWith(PREFIX)) return;
 
 	// slice prefix, divide message into words
 	let content = message.content.trim().split(' ');
@@ -90,7 +99,7 @@ client.on('message', async (message) => {
 	const ID = message.guild.id;
 	const ACTION_LENGTH = PREFIX.length + action.length + 1;
 
-	switch(action){
+	switch (action) {
 
 		case 'help': case 'h': {
 			message.channel.send(MessageProvider.help());
@@ -101,35 +110,42 @@ client.on('message', async (message) => {
 			const TRACKING = ID in serverdata;
 			let serverQueue = queue.get(ID);
 
-			if(content[0] == undefined){
+			if (content[0] == undefined) {
 				if(TRACKING) message.channel.send(MessageProvider.trackingEnabled());
 				else message.channel.send(MessageProvider.trackingDisabled());
 				return;
 			}
 
-			if(content[0] == "enable" || content[0] == "1"){
-				if(TRACKING){
+			if (content[0] == "enable" || content[0] == "1") {
+				if (TRACKING) {
 					message.channel.send(MessageProvider.trackingAlreadySet(true));
 					return;
 				}
+				
 				serverdata[ID] = {};
-				if(serverQueue != null){
+
+				// update queue if exists 
+				if (serverQueue != null) {
 					serverQueue.tracking = true;
-					if(serverQueue.length() > 0){
+					if (serverQueue.length() > 0) {
 						Utils.addSongToData(ID, serverQueue.front(), serverdata);
 					}
 				}
+
 				message.channel.send(MessageProvider.trackingToggled(true));
 				return;
 			}
-			else if(content[0] == "disable" || content[0] == "0"){
-				if(!TRACKING){
+			else if (content[0] == "disable" || content[0] == "0") {
+				if (!TRACKING) {
 					message.channel.send(MessageProvider.trackingAlreadySet(false));
 					return;
 				}
 
 				delete serverdata[ID];
-				if(serverQueue != null) serverQueue.tracking = false;
+
+				// update queue if exists 
+				if (serverQueue != null) serverQueue.tracking = false;
+				
 				message.channel.send(MessageProvider.trackingToggled(false));
 				return;
 			}
@@ -138,15 +154,15 @@ client.on('message', async (message) => {
 		}
 
 		case 'vote': case 'v': {
-			if(!await checkVoice(ID, message)) return;
+			if (!await checkVoice(ID, message)) return;
 			let serverQueue = queue.get(ID);
 
-			if(!serverQueue.tracking){
+			if (!serverQueue.tracking) {
 				message.channel.send(MessageProvider.trackingRequired());
 				return
 			}
 
-			if(serverQueue.length() == 0 || !serverQueue.playing) {
+			if (serverQueue.length() == 0 || !serverQueue.playing) {
 				message.channel.send(MessageProvider.notPlaying());
 				return;
 			}
@@ -157,19 +173,19 @@ client.on('message', async (message) => {
 			let newVote = parseInt(content[0]);
 			let voteEnum = { yes: 1, no: -1, remove: 0 };
 
-			if(content[0] === undefined){
+			if (content[0] === undefined) {
 				// show vote
-				if(oldVote === undefined) message.channel.send(MessageProvider.noVote());
+				if (oldVote === undefined) message.channel.send(MessageProvider.noVote())
 				else message.channel.send(MessageProvider.vote(oldVote));
 				return;
 			}
 
-			if(isNaN(newVote)) newVote = voteEnum[content[0].toLowerCase()];
-			if(newVote === undefined){
+			if (isNaN(newVote)) newVote = voteEnum[content[0].toLowerCase()];
+			if (newVote === undefined) {
 				message.channel.send(MessageProvider.noCommand(message, 2));
 				return;
 			}
-			if(newVote > 1 || newVote < -1){
+			if (newVote > 1 || newVote < -1) {
 				message.channel.send(MessageProvider.outOfScope("vote"));
 				return;
 			}
@@ -179,12 +195,16 @@ client.on('message', async (message) => {
 		}
 
 		case 'search': case 'sr': {
-			if(content[0] === undefined) {
+			let serverQueue = queue.get(ID);
+			if (content[0] === undefined) {
 				message.channel.send(MessageProvider.noQuery());
 				return;
 			}
-			const result = await (Utils.searchList(message.content.slice(ACTION_LENGTH), message.member));
-			if(result == null) {
+			const query = message.content.slice(ACTION_LENGTH);
+			const result = await (Utils.searchList(query, message.member));
+			if (serverQueue != null) serverQueue.cache = query;
+
+			if (result == null) {
 				message.channel.send(MessageProvider.noSong());
 				return;
 			}
@@ -193,12 +213,18 @@ client.on('message', async (message) => {
 		}
 		
 		case 'search-play': case 'sp': {
-			if(content[0] == undefined || isNaN(parseInt(content[0]))){
+			let serverQueue = queue.get(ID);
+			if (content[0] == undefined || isNaN(parseInt(content[0]))) {
 				message.channel.send(MessageProvider.noCommand(message, 1));
 				return;
 			}
-			if(content[1] == undefined){
-				message.channel.send(MessageProvider.noQuery());
+			if (content[1] == undefined) {
+				if (serverQueue == null || serverQueue.cache == undefined) {
+					message.channel.send(MessageProvider.noQuery());
+					return;
+				}
+				play(ID, message, serverQueue.cache, content[0]);
+				if (serverQueue != null) serverQueue.cache = undefined;
 				return;
 			}
 			play(ID, message, message.content.slice(ACTION_LENGTH + content[0].length + 1), content[0]);
@@ -211,50 +237,50 @@ client.on('message', async (message) => {
 		}
 		
 		case 'skip': case 's': {
-			if(!await checkVoice(ID, message)) return;
+			if (!await checkVoice(ID, message)) return;
 
 			let serverQueue = queue.get(ID);
 			let count = parseInt(content[0]);
 			let length = serverQueue.length();
 
 			// input checking
-			if(content[0] === undefined) {
+			if (content[0] === undefined) {
 				count = 1;
 			}
-			if(isNaN(count)) {
+			if (isNaN(count)) {
 				message.channel.send(MessageProvider.noCommand(message, 2));
 				return;
 			}
-			if(count > length || count < 1){
+			if (count > length || count < 1) {
 				message.channel.send(MessageProvider.outOfScope("skip"));
 				return;
 			}
 			message.channel.send(MessageProvider.skipped(count, serverQueue.front()));
 			serverQueue.remove(0, count);
-			Utils.play(serverQueue, serverdata);
+			serverQueue.play(serverdata);
 			break;
 		}
 
 		case 'queue': case 'q': {
-			if(!await checkVoice(ID, message)) return;
+			if (!await checkVoice(ID, message)) return;
 			let serverQueue = queue.get(ID);
 
 			let count = parseInt(content[0]);
-			if(isNaN(count)) count = 10;
+			if (isNaN(count)) count = 10;
 			// clamp 
 			count = Math.min(Math.max(count, 0), serverQueue.length());
 
-			if(serverQueue.toString().length > 0){
+			if (serverQueue.toString().length > 0) {
 				message.channel.send(MessageProvider.queue(serverQueue, count));
 			}
-			else{
+			else {
 				message.channel.send(MessageProvider.emptyQueue());
 			}
 			break;
 		}
 		
 		case 'remove': case 'r': {
-			if(!await checkVoice(ID, message)) return;
+			if (!await checkVoice(ID, message)) return;
 
 			let serverQueue = queue.get(ID);
 			let position = parseInt(content[0]);
@@ -262,16 +288,16 @@ client.on('message', async (message) => {
 			let length = serverQueue.length();
 
 			// input checking
-			if(isNaN(position)){
+			if (isNaN(position)) {
 				message.channel.send(MessageProvider.noCommand(message, 2));
 				return;
 			}
-			if(content[1] === undefined) count = 1;
-			if(isNaN(count)){
+			if (content[1] === undefined) count = 1;
+			if (isNaN(count)) {
 				message.channel.send(MessageProvider.noCommand(message, 3));
 				return;
 			}
-			if(position > length || position + count > length || position < 1 || count < 1){
+			if (position > length || position + count > length || position < 1 || count < 1) {
 				message.channel.send(MessageProvider.outOfScope("remove"));
 				return;
 			}
@@ -284,12 +310,12 @@ client.on('message', async (message) => {
 			let botVoice = (await client.guilds.fetch(ID, 0, 1)).voice;
 			let userVoice = message.member.voice;
 
-			if(botVoice === undefined || botVoice.channelID === null) {
+			if (botVoice === undefined || botVoice.channelID === null) {
 				message.channel.send(MessageProvider.noVoiceChannel());
 				return;
 			}
 
-			if(userVoice === undefined || userVoice.channelID === null || botVoice.channelID != userVoice.channelID) {
+			if (userVoice === undefined || userVoice.channelID === null || botVoice.channelID != userVoice.channelID) {
 				if(botVoice.channel.members.size > 1){
 					message.channel.send(MessageProvider.busy(message.member, botVoice.channel));
 					return;
@@ -297,8 +323,6 @@ client.on('message', async (message) => {
 			}
 
 			botVoice.channel.leave();
-			let serverQueue = queue.get(ID);
-			queue.remove(serverQueue);
 			break;
 		}
 
@@ -306,19 +330,19 @@ client.on('message', async (message) => {
 			let userVoice = message.member.voice;
 			let botVoice = (await client.guilds.fetch(ID, 0, 1)).voice;
 
-			if(userVoice === undefined || userVoice.channelID === null) {
+			if (userVoice === undefined || userVoice.channelID === null) {
 				message.channel.send(MessageProvider.joinChannel(message.author));
 				return;
 			}
 
-			if(!(botVoice === undefined || botVoice.channelID === null)) {
-				if(botVoice.channelID != userVoice.channelID && botVoice.channel.members.size > 1){
+			if (!(botVoice === undefined || botVoice.channelID === null)) {
+				if (botVoice.channelID != userVoice.channelID && botVoice.channel.members.size > 1) {
 					message.channel.send(MessageProvider.busy(message.member, botVoice.channel));
 					return;
 				}
 			}
 
-			if(queue.get(ID) === null){
+			if (queue.get(ID) === null) {
 				queue.add(ID, new Utils.ServerQueue(ID, userVoice, message.channel, (ID in serverdata)));
 			}
 			
@@ -340,7 +364,7 @@ client.on('message', async (message) => {
 		*/
 
 		case "loop": {
-			if(!await checkVoice(ID, message)) return;
+			if (!await checkVoice(ID, message)) return;
 			
 			let serverQueue = queue.get(ID);
 			serverQueue.loop = !serverQueue.loop;
@@ -362,25 +386,25 @@ const checkVoice = async (ID, message) => {
 	let userVoice = message.member.voice;
 	
 	// Check if user is in Voice Channel.
-	if(userVoice === undefined || userVoice.channelID === null) {
+	if (userVoice === undefined || userVoice.channelID === null) {
 		message.channel.send(MessageProvider.joinChannel(message.author));
 		return false;
 	}
 	
 	// Check if Client is in Voice Channel.
-	if(botVoice === undefined || botVoice.channelID === null) {
+	if (botVoice === undefined || botVoice.channelID === null) {
 		// If not then join user's Voice Channel
 		botVoice = (await userVoice.channel.join()).voice;
 	}
 
 	// Send a message if Client's and user's Voice Channels are different and return.
-	if(botVoice.channelID != userVoice.channelID) {
+	if (botVoice.channelID != userVoice.channelID) {
 		message.channel.send(MessageProvider.joinBotChannel(message.author, botVoice.channel));
 		return false;
 	}
 	
 	// Create ServerQueue if doesn't exist.
-	if(queue.get(ID) === null) {
+	if (queue.get(ID) === null) {
 		queue.add(ID, new Utils.ServerQueue(ID, botVoice, message.channel, (ID in serverdata)));
 	}
 
@@ -389,8 +413,8 @@ const checkVoice = async (ID, message) => {
 
 const setVote = async (oldVote, newVote, id, songId, userId) => {
 
-	if(oldVote === undefined) {
-		if(newVote == 0) {
+	if (oldVote === undefined) {
+		if (newVote == 0) {
 			// no vote to remove
 			return MessageProvider.cantRemoveVote();
 		}
@@ -402,13 +426,13 @@ const setVote = async (oldVote, newVote, id, songId, userId) => {
 		}
 	}
 	else{
-		if(newVote == 0) {
+		if (newVote == 0) {
 			// remove vote
 			serverdata[id][songId].score -= oldVote;
 			delete serverdata[id][songId].votes[userId];
 			return MessageProvider.voteRemoved(serverdata[id][songId].score);
 		}
-		else if(newVote == oldVote) {
+		else if (newVote == oldVote) {
 			// already voted
 			return MessageProvider.alreadyVoted(newVote);
 		}
@@ -422,12 +446,12 @@ const setVote = async (oldVote, newVote, id, songId, userId) => {
 }
 
 const play = async (ID, message, query, index = 1) => {
-	if(!await checkVoice(ID, message)) return;
+	if (!await checkVoice(ID, message)) return;
 
 	let serverQueue = queue.get(ID);
 
-	if(query.length <= 0) {
-		if(serverQueue.length() > 0 && serverQueue.playing){
+	if (query.length <= 0) {
+		if (serverQueue.length() > 0 && serverQueue.playing) {
 			let song = serverQueue.front();
 			let dataString = (serverQueue.tracking) ? MessageProvider.trackingData(ID, getURLVideoID(song.url), serverdata) : "";
 			message.channel.send(MessageProvider.playing(song) + dataString);
@@ -440,21 +464,21 @@ const play = async (ID, message, query, index = 1) => {
 
 	let song = await Utils.search(query, message.member, index-1);
 	
-	if(song == null){
+	if (song == null) {
 		message.channel.send(MessageProvider.noSong());
 		return;
 	}
 
-	if(serverQueue.contains(song)){
+	if (serverQueue.contains(song)) {
 		message.channel.send(MessageProvider.duplicate());
 		return;
 	}
 
 	let position = serverQueue.push(song);
 
-	if(position == 1) {
+	if (position == 1) {
 		serverQueue.playing = true;
-		Utils.play(serverQueue, serverdata);
+		serverQueue.play(serverdata);
 		return;
 	}
 	message.channel.send(MessageProvider.addedToQueue(song, position - 1));

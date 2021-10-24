@@ -5,7 +5,8 @@ const { getURLVideoID, validateURL } = require('ytdl-core');
 const { playing, trackingData } = require('./MessageProvider.js');
 const ytdl = require('ytdl-core');
 const yts = require('yt-search');
-const fs = require("fs");
+
+const TEN_MINUTES = 1000*60*10;
 
 /**
  * @class
@@ -19,12 +20,14 @@ class Song {
 	 * @param {String} title - Title of a song
 	 * @param {String} url - Youtube URL
 	 * @param {String} duration - Duration of a song already formated i.e. [3:41]
+	 * @param {String} author - Author of the song (channel name)
 	 * @param {String} user - DispalyName of a discord user who requested a song
 	 */
-	constructor(title, url, duration, user) {
+	constructor (title, url, duration, author, user) {
 		this.title = title;
 		this.url = url;
 		this.duration = duration;
+		this.author = author;
 		this.user = user;
 	}
 
@@ -34,7 +37,7 @@ class Song {
 	 * @example console.log(Song.toString()) 
 	 * // Logs: Song Title [duration]
 	 */
-	toString(){
+	toString() {
 		return `${this.title} | [${this.duration}]`;
 	}
 }
@@ -61,14 +64,16 @@ class ServerQueue {
 		this.playing = playing;
 		this.tracking = tracking;
 		this.loop = loop;
+		this.cache = undefined; // cache last query 
+		this.timer = setInterval(checkAcitivity, TEN_MINUTES, this); // inactivity check
 	}
 
 	/**
 	 * Returns first element form a ServerQueue. If ServerQueue is empty, null is returned.
 	 * @returns First element form a ServerQueue or null.
 	 */
-	front() {
-		if(this.songs.length > 0) return this.songs[0];
+	front () {
+		if (this.songs.length > 0) return this.songs[0];
 		else return null;
 	}
 
@@ -76,7 +81,7 @@ class ServerQueue {
 	 * Returns a number of elements in ServerQueue.
 	 * @returns A number of elements in ServerQueue.
 	 */
-	length() {
+	length () {
 		return this.songs.length;
 	}
 
@@ -85,7 +90,7 @@ class ServerQueue {
 	 * If ServerQueue is empty, undefined is returned and ServerQueue is not modified.
 	 * @returns First element form a ServerQueue.
 	 */
-	pop() {
+	pop () {
 		return this.songs.shift();
 	}
 
@@ -94,7 +99,7 @@ class ServerQueue {
 	* @param {...Song} items - New elements to add to the ServerQueue.
 	* @returns New length of the ServerQueue.
 	*/
-	push(...items){
+	push (...items) {
 		return this.songs.push(...items);
 	}
 
@@ -104,7 +109,7 @@ class ServerQueue {
 	 * @param  {...Song} items 
 	 * @returns New length of the ServerQueue.
 	 */
-	add(start, ...items){
+	add (start, ...items) {
 		this.songs.splice(start, 0, ...items);
 		return this.songs.length;
 	}
@@ -115,16 +120,16 @@ class ServerQueue {
 	 * @param {Number} count - The number of elements to remove.
 	 * @returns An array containing the elements that were removed.
 	 */
-	remove(start, count = 1){
+	remove (start, count = 1) {
 		return this.songs.splice(start, count);
 	}
 
 	/**
-	 * Determines whether a ServerQueue contains certain element returning true or false as appropriate.
+	 * Determines whether a ServerQueue contains certain element, returning true or false appropriately.
 	 * @param {Song} searchElement 
 	 * @returns true or false depending on whether ServerQueue contains searchElement
 	 */
-	contains(searchElement){
+	contains (searchElement) {
 		const id = getURLVideoID(searchElement.url);
 		return this.songs.some((element) => { return (getURLVideoID(element.url) == id) });
 	}
@@ -139,10 +144,41 @@ class ServerQueue {
 	 * // 2. The title of the second song [duration]
 	 * // ...
 	 */
-	toString(count = 10){
+	toString (count = 10) {
 		return this.songs.slice(1, count+1).map((element, index) => {
 			return `${index + 1}. ${element.toString()}` 
 		}).join('\n');
+	}
+
+	/**
+	 * Plays first song form queue on voice channel using ytdl and Discord.play.
+	 * @param {Object} [data] - Additional data to display in announcement used only when tracking is enabled.
+	 */
+	 async play (data = null) {
+		let song = this.front();
+
+		if (song == null) {
+			// utility for skipping last song
+			if(this.voice.connection.dispatcher != null) this.voice.connection.dispatcher.destroy();
+			this.playing = false;
+			return;
+		}
+
+		this.playing = true;
+
+		// message
+		if (this.tracking) addSongToData(this.id, song, data);
+		let dataString = (this.tracking) ? trackingData(this.id, getURLVideoID(song.url), data) : "";
+		this.channel.send(playing(song) + dataString);
+
+		// play and set listener to start new song after finish
+		this.voice.connection.play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio' }))
+		.on('finish', () => {
+			if(!this.loop) { 
+				this.pop();
+			}
+			this.play(this, data);
+		});
 	}
 }
 
@@ -157,7 +193,7 @@ class Queue {
 	 * @param {String} id - Id of a guild.
 	 * @param {ServerQueue} element - ServerQueue.
 	 */
-	add(id, element){
+	add (id, element) {
 		this[id] = element;
 	}
 
@@ -166,8 +202,8 @@ class Queue {
 	 * @param {String} id - Id of a guild.
 	 * @returns Boolian informing if element was removed or not.
 	 */
-	remove(id){
-		if(!(id in this)) return false;
+	remove (id) {
+		if (!(id in this)) return false;
 		delete this[id];
 		return true;
 	}
@@ -177,51 +213,10 @@ class Queue {
 	 * @param {Stirng} id - Id of a guild.
 	 * @returns Element with specified id or null.
 	 */
-	get(id){
+	get (id) {
 		if(!(id in this)) return null;
 		return this[id];
 	}
-}
-
-/**
- * Plays first song form queue on voice channel using ytdl and Discord.play.
- * @param {ServerQueue} queue - Guild's ServerQueue.
- * @param {Object} [data] - Additional data to display in announcement used only when tracking is enabled.
- */
-const play = async (queue, data = null) => {
-	let song = queue.front();
-
-	if(song == null) {
-		// utility for skipping last song
-		if(queue.voice.connection.dispatcher != null) queue.voice.connection.dispatcher.destroy();
-		queue.playing = false;
-		return;
-	}
-
-	queue.playing = true;
-
-	// message
-	if(queue.tracking) addSongToData(queue.id, song, data);
-	let dataString = (queue.tracking) ? trackingData(queue.id, getURLVideoID(song.url), data) : ""
-	queue.channel.send(playing(song) + dataString);
-
-	// play and set listener to start new song after finish
-	queue.voice.connection.play(ytdl(song.url, { filter: 'audioonly', quality: 'highestaudio' }))
-	.on('finish', () => {
-		if(!queue.loop) { 
-			queue.pop();
-		}
-		play(queue, data);
-	});
-}
-
-// does not work because resume is buggy 
-// TO DO: fix with @discord/voice
-const pause = async (queue) => {
-	console.log(queue.playing);
-	if(queue.playing) queue.voice.connection.dispatcher.pause();
-	else queue.voice.connection.dispatcher.resume();
-	queue.playing = !queue.playing;
 }
 
 /**
@@ -232,19 +227,19 @@ const pause = async (queue) => {
  * @returns Song object or null if no result was found
  */
 const search = async (query, user, position = 0) => {
-	if(validateURL(query)) { // query is url
+	if (validateURL(query)) { // query is url
 		// catch when query is invalid (or no result is found)
 		try {
-			const info = await yts({ videoId: getURLVideoID(query) })
-			return new Song(info.title, info.url, info.duration.timestamp, user);
+			const info = await yts({ videoId: getURLVideoID(query) });
+			return new Song(info.title, info.url, info.duration.timestamp, info.author, user);
 		}
 		catch(err) { return null }
 	}
 	else {
 		const info = await yts(query);
 		const length = info.videos.length;
-		if(length < 1 || position < 0|| position >= length) return null;
-		return new Song(info.videos[position].title, info.videos[position].url, info.videos[position].duration.timestamp, user);		
+		if (length < 1 || position < 0|| position >= length) return null;
+		return new Song(info.videos[position].title, info.videos[position].url, info.videos[position].duration.timestamp, info.videos[position].author, user);		
 	}
 }
 
@@ -257,10 +252,10 @@ const search = async (query, user, position = 0) => {
  */
 const searchList = async (query, user, count = 10) => {
 	// if url then return 
-	if(validateURL(query)) return (await search(query, user)).toString();
+	if (validateURL(query)) return (await search(query, user)).toString();
 
 	const info = await yts(query);
-	if(info.videos.length < 1) return null;
+	if (info.videos.length < 1) return null;
 
 	return info.videos.slice(0, count).map((element, index) => {
 		return `${index + 1}. ${element.title} | [${element.timestamp}]` 
@@ -275,19 +270,24 @@ const searchList = async (query, user, count = 10) => {
  */
 const addSongToData = async (id, song, data) => {
 	const songId = ytdl.getURLVideoID(song.url);
-	if(!(songId in data[id])){
+	if (!(songId in data[id])) {
 		data[id][songId] = { "title": song.title, "count": 1, "votes": {}, "score": 0 };
 	}
-	else{
+	else {
 		data[id][songId].count += 1;
 	}
 }
 
+const checkAcitivity = async (serverQueue) => {
+	if (serverQueue.voice.channel.members.size == 1) {
+		serverQueue.voice.channel.leave();
+	}
+}
+
+
 module.exports.Song = Song;
 module.exports.ServerQueue = ServerQueue;
 module.exports.Queue = Queue;
-module.exports.play = play;
-module.exports.pause = pause;
 module.exports.search = search;
 module.exports.searchList = searchList;
 module.exports.addSongToData = addSongToData;

@@ -182,8 +182,8 @@ var MessageProvider = {
 
 	playing: function (song) {
 		return (
-			"**:notes:  Now Playing:** " + song.title + "\nRequested by: " + 
-			song.user.displayName + "    Duration: [" + song.duration + "]"
+			"**:notes:  Now Playing:** " + song.title + "\nAuthor: " + 
+			song.author.name + "    Duration: [" + song.duration + "]\nRequested by: " + song.user.displayName
 		);
 	},
 
