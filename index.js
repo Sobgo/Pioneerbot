@@ -235,6 +235,32 @@ client.on('message', async (message) => {
 			play(ID, message, message.content.slice(ACTION_LENGTH));
 			break;
 		}
+
+		case "play-random": case "pr": {
+
+
+			const ID = message.guild.id;
+			const TRACKING = ID in serverdata;
+			
+			if (!TRACKING) return;
+			if (!await checkVoice(ID, message)) return;
+			
+			let serverQueue = queue.get(ID);
+			let keys = Object.keys(serverdata[ID]);
+			let randomKey = keys[Math.floor(Math.random() * keys.length)];
+			let song = await Utils.fetchSong(randomKey, message.member);
+
+			if (serverQueue.contains(song)) return;
+			let position = serverQueue.push(song);
+		
+			if (position == 1) {
+				serverQueue.playing = true;
+				serverQueue.play(serverdata);
+				return;
+			}
+			message.channel.send(MessageProvider.addedToQueue(song, position - 1));
+			break;
+		}
 		
 		case 'skip': case 's': {
 			if (!await checkVoice(ID, message)) return;
@@ -450,7 +476,7 @@ const play = async (ID, message, query, index = 1) => {
 
 	let serverQueue = queue.get(ID);
 
-	if (query.length <= 0) {
+	if (query.length == 0) {
 		if (serverQueue.length() > 0 && serverQueue.playing) {
 			let song = serverQueue.front();
 			let dataString = (serverQueue.tracking) ? MessageProvider.trackingData(ID, getURLVideoID(song.url), serverdata) : "";

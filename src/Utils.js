@@ -177,7 +177,7 @@ class ServerQueue {
 			if(!this.loop) { 
 				this.pop();
 			}
-			this.play(this, data);
+			this.play(data);
 		});
 	}
 }
@@ -219,6 +219,11 @@ class Queue {
 	}
 }
 
+const fetchSong = async (ytid, user) => {
+	const info = await yts({ videoId: ytid });
+	return new Song(info.title, info.url, info.duration.timestamp, info.author, user);
+}
+
 /**
  * Searches video on youtube with url or query.
  * @param {String} query - Query which will be used to search a song.
@@ -230,8 +235,7 @@ const search = async (query, user, position = 0) => {
 	if (validateURL(query)) { // query is url
 		// catch when query is invalid (or no result is found)
 		try {
-			const info = await yts({ videoId: getURLVideoID(query) });
-			return new Song(info.title, info.url, info.duration.timestamp, info.author, user);
+			return fetchSong(getURLVideoID(query), user);
 		}
 		catch(err) { return null }
 	}
@@ -288,6 +292,7 @@ const checkAcitivity = async (serverQueue) => {
 module.exports.Song = Song;
 module.exports.ServerQueue = ServerQueue;
 module.exports.Queue = Queue;
+module.exports.fetchSong = fetchSong;
 module.exports.search = search;
 module.exports.searchList = searchList;
 module.exports.addSongToData = addSongToData;
