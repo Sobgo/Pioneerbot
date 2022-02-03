@@ -1,4 +1,4 @@
-'use strict';
+'use strict'
 import { Client, Intents, Interaction, Message } from 'discord.js';
 import { commandHandler } from './commandHandler';
 import { Wrapper } from './structures';

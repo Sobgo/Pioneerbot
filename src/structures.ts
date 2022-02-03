@@ -2,8 +2,9 @@
 import { getBasicInfo, validateURL, getURLVideoID } from "ytdl-core";
 import { exec as ytdl } from 'youtube-dl-exec'; // fix for abort error in ytdl-core
 import { secToTimestamp } from "./utils";
-import { TextChannel, GuildMember, MessageEmbed, Util, DMChannel, NewsChannel, ThreadChannel, PartialDMChannel }from "discord.js";
+import { TextChannel, GuildMember, DMChannel, NewsChannel, ThreadChannel, PartialDMChannel }from "discord.js";
 import { AudioPlayer, VoiceConnection, AudioPlayerStatus, createAudioResource } from "@discordjs/voice";
+import { messageProvider } from "./messageProvider";
 
 type MessageChannel = TextChannel | DMChannel | NewsChannel | ThreadChannel | PartialDMChannel;
 
@@ -64,7 +65,7 @@ export class Queue {
 	public songs: Song[];
 	//public tracking: boolean;
 	public loop: boolean;
-	public cache: string | undefined;
+	public cache: Song[] | null;
 	public timer: any;
 
 	public constructor (guildId: string, voiceId: string, text: MessageChannel, connection: VoiceConnection, player: AudioPlayer, loop: boolean = false) {
@@ -76,7 +77,7 @@ export class Queue {
 		//this.tracking = tracking;
 		this.loop = loop;
 		this.songs = [];
-		this.cache = undefined;
+		this.cache = null;
 		//this.timer
 
 		this.player.on('stateChange', (oldState, newState) => {
@@ -101,22 +102,11 @@ export class Queue {
 				this.player.play(resource);
 			}
 			// song started
-			else if (newState.status === AudioPlayerStatus.Playing) {
+			else if (newState.status === AudioPlayerStatus.Playing && oldState.status === AudioPlayerStatus.Buffering) {
 				const song = this.front();
 				if(song == undefined) throw "undefined song";
 
-				const response = new MessageEmbed()
-				.setColor('#0099ff')
-				.setDescription("**" + Util.escapeMarkdown(song.title) + "**")
-				.setTitle('**:notes:  Now Playing:**')
-				.setURL(song.url)
-				.addFields(
-					{ name: 'Author', value: song.author, inline: true },
-					{ name: 'Length', value: secToTimestamp(song.duration), inline: true },
-					{ name: 'Requested by', value: song.user.toString(), inline: true }
-				)
-
-				this.textChannel.send({ embeds: [response] });
+				this.textChannel.send({ embeds: [messageProvider.play(song)] });
 			}
 		});
 	}

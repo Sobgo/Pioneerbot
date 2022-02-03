@@ -1,13 +1,12 @@
 'use strict'
-
-import { Message, MessageEmbed, Util } from "discord.js";
+import { Message } from "discord.js";
 import { createAudioResource } from "@discordjs/voice";
 import { exec as ytdl } from 'youtube-dl-exec'; // fix for abort error in ytdl-core
-import { Wrapper, Queue, Song} from "../structures";
-import { secToTimestamp } from '../utils';
+import { Wrapper, Queue, Song } from "../structures";
 
 import { join } from './join';
-import { search } from './search';
+import { searchList } from './search';
+import { messageProvider } from "../messageProvider";
 
 const FLAGS = {
 	output: '-', // output to stdout
@@ -16,19 +15,24 @@ const FLAGS = {
 	limitRate: '100K' // max download rate in bytes
 }
 
-export const play = async (ID: string, queues: Wrapper, message: Message, args: string[], content: string) => { 
-	
+export const aliases = ["p"];
+
+export const play = async (ID: string, queues: Wrapper, message: Message, args: string[]) => {
+	const query = args.map((element) => { return element }).join(' ');
+	await playSong(ID, queues, message, query);
+}
+
+export const playSong = async (ID: string, queues: Wrapper, message: Message, query: string, position: number = 1): Promise<Song[] | null> => { 	
 	// get queue
 	if (queues.get(ID) == null) await join(ID, queues, message);
 	const QUEUE = queues.get(ID);
-	if (QUEUE == null) return;
+	if (QUEUE == null) return null;
 
 	// validate and add to queue
 	let song: Song;
 
-	if (args.length < 1) return;
-	const result = await search(message, args, content, 1);
-	if (result == null || result.length < 1) return;
+	const result = await searchList(message, query, position, position-1);
+	if (result == null || result.length < 1) return null;
 	song = await Song.build(result[0].url, message.member);	
 
 	QUEUE.push(song);
@@ -37,18 +41,10 @@ export const play = async (ID: string, queues: Wrapper, message: Message, args: 
 		playResource(QUEUE);
 	}
 	else {
-		const response = new MessageEmbed()
-		.setColor('#ff0000')
-		.setDescription("**" + Util.escapeMarkdown(song.title) + "**")
-		.setTitle('**:memo:  Added to queue:**')
-		.setURL(song.url)
-		.addFields(
-			{ name: 'Author', value: song.author, inline: true },
-			{ name: 'Length', value: secToTimestamp(song.duration), inline: true },
-			{ name: 'Requested by', value: song.user.toString(), inline: true }
-		)
-		message.channel.send({ embeds: [response] });
+		message.channel.send({ embeds: [messageProvider.queueAdd(song)] });
 	}
+
+	return result;
 }
 
 const playResource = async (QUEUE: Queue) => {

@@ -16,7 +16,7 @@ export const secToTimestamp = (sec: string) => {
 	return timestamp;
 }
 
-export const toList = (list: Song[]) => {
+export const songsToList = (list: Song[]) => {
 	return list.map((element, index) => {
 		return `${index + 1}. ${element.title} | [${secToTimestamp(element.duration)}]` 
 	}).join('\n');
