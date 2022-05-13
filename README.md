@@ -1,6 +1,6 @@
 # Pioneer music bot
-Pioneer is a discord music bot written in typescript and using discord.js API
-It lest you play music from youtube direclty to voice channel
+Pioneer is a discord music bot written in typescript and using discord.js API  
+It lest you play music from youtube direclty to voice channel  
 Pioneer is intended for private usage (self hosting) to avoid issues with copyrights
 
 ## Available functions
