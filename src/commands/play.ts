@@ -1,59 +1,55 @@
 'use strict'
 import { Message } from "discord.js";
-import { createAudioResource } from "@discordjs/voice";
-import { exec as ytdl } from 'youtube-dl-exec'; // fix for abort error in ytdl-core
-import { Wrapper, Queue, Song } from "../structures";
+import { Wrapper, Song } from "../structures";
+import { messageProvider } from "../messageProvider";
 
 import { join } from './join';
 import { searchList } from './search';
-import { messageProvider } from "../messageProvider";
-
-const FLAGS = {
-	output: '-', // output to stdout
-	quiet: true, // quiet mode
-	format: 'bestaudio[ext=webm+acodec=opus+asr=48000]/bestaudio', // output format
-	limitRate: '100K' // max download rate in bytes
-}
+import { checkQueue } from "../utils";
 
 export const aliases = ["p"];
 
+export const description = "Play a song to the voice channel, if no `[query]` specified it will show curently playing song.";
+export const usage = "[query]";
+
 export const play = async (ID: string, queues: Wrapper, message: Message, args: string[]) => {
 	const query = args.map((element) => { return element }).join(' ');
-	await playSong(ID, queues, message, query);
+	if (args.length != 0) {
+		await playSong(ID, queues, message, query);
+	}
+	else {
+		await getStatus(ID, queues, message);
+	}
 }
 
 export const playSong = async (ID: string, queues: Wrapper, message: Message, query: string, position: number = 1): Promise<Song[] | null> => { 	
-	// get queue
-	if (queues.get(ID) == null) await join(ID, queues, message);
-	const QUEUE = queues.get(ID);
+	const QUEUE = await checkQueue(ID, queues, message, true);
 	if (QUEUE == null) return null;
 
 	// validate and add to queue
-	let song: Song;
-
 	const result = await searchList(message, query, position, position-1);
-	if (result == null || result.length < 1) return null;
-	song = await Song.build(result[0].url, message.member);	
+	
+	if (result == null || result.length < 1) {
+		message.channel.send({ embeds: [messageProvider.noResult()] });
+		return null;
+	}
 
-	QUEUE.push(song);
+	QUEUE.push(result[0]);
 	
 	if(QUEUE.length() == 1) {
-		playResource(QUEUE);
+		QUEUE.playResource();
 	}
 	else {
-		message.channel.send({ embeds: [messageProvider.queueAdd(song)] });
+		message.channel.send({ embeds: [messageProvider.queueAdd(result[0], QUEUE.length() - 1)] });
 	}
 
 	return result;
 }
 
-const playResource = async (QUEUE: Queue) => {
-	const song = QUEUE.front();
-	if (song == undefined) return;
+const getStatus = async (ID: string, queues: Wrapper, message: Message) => {
+	if (queues.get(ID) == null) await join(ID, queues, message);
+	const QUEUE = queues.get(ID);
+	if (QUEUE == null) return null;
 
-	const stream = ytdl(song.url, FLAGS, { stdio: ['ignore', 'pipe', 'ignore'] });
-	if (!stream.stdout) return;
-
-	const resource = createAudioResource(stream.stdout,  { inlineVolume: true });
-	QUEUE.player.play(resource);
+	message.channel.send({ embeds: [messageProvider.play(QUEUE.front())] });
 }

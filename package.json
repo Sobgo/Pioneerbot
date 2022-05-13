@@ -12,11 +12,10 @@
   "dependencies": {
     "@discordjs/opus": "^0.5.3",
     "@discordjs/voice": "^0.7.5",
+    "cheerio": "^1.0.0-rc.10",
     "discord.js": "^13.6.0",
     "tweetnacl": "^1.0.3",
-    "youtube-dl-exec": "^2.0.2",
-    "ytdl-core": "^4.9.2",
-    "ytsr": "^3.5.3"
+    "youtube-dl-exec": "^2.0.2"
   },
   "devDependencies": {
     "@types/node": "^16.11.9",

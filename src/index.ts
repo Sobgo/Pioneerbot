@@ -1,52 +1,51 @@
 'use strict'
-import { Client, Intents, Interaction, Message } from 'discord.js';
-import { commandHandler } from './commandHandler';
+import { Interaction, Message } from 'discord.js';
+import { createInterface } from 'readline';
+import { writeFile } from 'fs';
 import { Wrapper } from './structures';
+import { importCommands } from './commandHandler';
 import config from '../config.json';
 
-// const FIVE_MINUTES = 1000*60*5;
+const wrapper = new Wrapper(config.prefix);
 
-const client = new Client({
-	intents: [ 
-		Intents.FLAGS.GUILDS, 
-		// Intents.FLAGS.GUILD_MEMBERS,
-		Intents.FLAGS.GUILD_VOICE_STATES,
-		Intents.FLAGS.GUILD_MESSAGES,
-		Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
-		Intents.FLAGS.DIRECT_MESSAGES
-	]
-});
+if (config.token.length < 1) {
+	const rli = createInterface({
+		input: process.stdin,
+		output: process.stdout
+	});
 
-const queues = new Wrapper;
+	rli.question("Please enter your discord api token: ", (answer) => {
+		config.token = answer;
+		wrapper.client.login(answer);
+		rli.close();
+		importCommands();
+	});
+}
+else {
+	wrapper.client.login(config.token);
+	importCommands();
+}
 
-client.login(config.token);
-
-client.on('ready', async () => {
-	if (client.user != null) {
-		console.log( `${client.user.username} successfully logged in`);
+wrapper.client.on('ready', async () => {
+	if (wrapper.client.user != null) {
+		writeFile('./config.json', JSON.stringify(config, null, 2), (err) => {
+			if (err) console.warn(err);
+		});
+		console.log( `${wrapper.client.user.username} successfully logged in`);
 	}
 });
 
 // prefixed commands 
-client.on('messageCreate', async (message: Message) => {
-	
+wrapper.client.on('messageCreate', async (message: Message) => {
 	if (!message.guild) return;
 	if (message.author.bot) return;
 
-	if (!(message.member?.voice)) return; // improve
-	
-	let guilds: { [key: string]: Record<string, string> } = config.guilds;
-
 	const ID = message.guild.id;
-	const PREFIX = guilds[ID] ? guilds[ID].prefix : "!";
-
-	if (!message.content.startsWith(PREFIX)) return;
-
-	commandHandler(ID, PREFIX, queues, message);
-
+	if (!message.content.startsWith(wrapper.prefix)) return;
+	wrapper.commandHandler(ID, wrapper.prefix, wrapper, message);
 });
 
 // discord / commands support TODO
-client.on('interactionCreate', async (interaction: Interaction) => {
+wrapper.client.on('interactionCreate', async (interaction: Interaction) => {
 	if (!interaction.isCommand() || !interaction.guild) return;
 });
