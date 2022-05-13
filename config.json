@@ -1,5 +1,4 @@
 {
-    "token": "token-here",
-	"guilds": {
-	}
+  "token": "",
+  "prefix": "!"
 }
