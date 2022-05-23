@@ -18,7 +18,8 @@ Node.js 16.9.0 or newer - https://nodejs.org
 FFmpeg - https://ffmpeg.org
 
 To use Pioneer you need to have your own discord API token which you can get if you have discord developer account  
-Then you will need to either build the application from the source code or use one of release builds (comming soon)  
+Then you will need to either build the application from the source code or use one of release builds 
+
 You can also just clone this repository and install it with dev dependencies using: `npm i -D` and then `npm run dev`  
 (you might want to install ts-node globally for easy access in command line)
 
@@ -27,7 +28,13 @@ Then you will need to invite your bot to one of your discord servers
 Also make sure that your bot has all necessary premissions if you're not sure which just give it admin.
 
 ## How to build
-I will update this section when I make first build
+`git clone https://github.com/Sobgo/Pioneerbot.git`  
+`cd Pioneerbot`  
+`npm i -D`  
+`npx tsc --outDir <yourPathToBuild>`  
+`move node_modules <yourPathToBuild>`  
+`cd <yourPathToBuild>`  
+`node src/index.js`  
 
 ## Custom commands
 You can add your own commands by creating file `[commandname].ts` in commands directory  
