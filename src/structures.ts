@@ -2,7 +2,7 @@
 import { exec as ytdl } from 'youtube-dl-exec';
 import { secToTimestamp, ytsr, validateURL, getVideoID } from "./utils";
 import { TextChannel, GuildMember, DMChannel, NewsChannel, ThreadChannel, PartialDMChannel, Client, Intents, VoiceBasedChannel }from "discord.js";
-import { AudioPlayer, VoiceConnection, AudioPlayerStatus, createAudioResource } from "@discordjs/voice";
+import { AudioPlayer, VoiceConnection, AudioPlayerStatus, createAudioResource, AudioPlayerState } from "@discordjs/voice";
 import { messageProvider } from "./messageProvider";
 import { commandHandler } from './commandHandler';
 
@@ -100,31 +100,29 @@ export class Queue {
 
 		this.timer = setInterval(this.checkActivity, TEN_MINUTES, this);
 
-		this.player.on('stateChange', (oldState, newState) => {
-			console.log(newState.status);
 
-			// song finished or skipped
-			if (newState.status === AudioPlayerStatus.Idle && oldState.status !== AudioPlayerStatus.Idle) {
-				this.pop();
-				const song = this.front();
-				if(song == undefined) return;
-				const stream = ytdl(song.url, FLAGS, { stdio: ['ignore', 'pipe', 'ignore'] });
-				if (!stream.stdout) {
-					console.warn("couldn't read stdout");
-					return;
-				}
-				const resource = createAudioResource(stream.stdout, {});
-				this.player.play(resource);
+		this.player.on(AudioPlayerStatus.Idle, (oldState: AudioPlayerState, newState: AudioPlayerState) => {
+			console.log(newState.status);
+			this.pop();
+			const song = this.front();
+			if(song == undefined) return;
+			const stream = ytdl(song.url, FLAGS, { stdio: ['ignore', 'pipe', 'ignore'] });
+			if (!stream.stdout) {
+				console.warn("couldn't read stdout");
+				return;
 			}
-			// song started
-			else if (newState.status === AudioPlayerStatus.Playing && oldState.status === AudioPlayerStatus.Buffering) {
-				const song = this.front();
-				if(song == undefined) throw "undefined song";
-				this.textChannel.send({ embeds: [messageProvider.play(song)] });
-			}
+			const resource = createAudioResource(stream.stdout, {});
+			this.player.play(resource);
+		});
+
+		this.player.on(AudioPlayerStatus.Playing, (oldState: AudioPlayerState, newState: AudioPlayerState) => {
+			console.log(newState.status);
+			const song = this.front();
+			if(song == undefined) throw "undefined song";
+			this.textChannel.send({ embeds: [messageProvider.play(song)] });
 		});
 	}
-
+	
 	// leave voice channel if no activity and no other users
 	private async checkActivity (queue: Queue) {
 		if (queue.wrapper) {

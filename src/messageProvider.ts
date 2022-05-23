@@ -24,7 +24,10 @@ export const messageProvider: Record<string, any> = {
 		return new MessageEmbed()
 			.setColor('#ff0000')
 			.setTitle('**:x:  Invalid Command**')
-			.setDescription(`Invalid command \`${commandName}\`, use \`${config.prefix + "help"}\` to see command list`);
+			.setDescription(
+				`Invalid command ${commandName.length == 0 ? "" : "`" +  commandName + "`" }` +
+				`, use \`${config.prefix + "help"}\` to see command list`
+			);
 	},
 
 	noCache: () => {
