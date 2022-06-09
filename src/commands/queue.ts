@@ -23,5 +23,5 @@ export const queue = async (ID: string, queues: Wrapper, message: Message, args:
 		return;
 	}
 
-	message.channel.send({embeds: [messageProvider.queueList(QUEUE.songs.slice(position, position + 10))]});
+	message.channel.send({embeds: [messageProvider.queueList(QUEUE.songs.slice(position, position + 10), position)]});
 }

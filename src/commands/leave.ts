@@ -9,7 +9,5 @@ export const description = "Request bot to leave the voice channel.";
 export const usage = "";
 
 export const leave = async (ID: string, queues: Wrapper, message: Message, args: string[]) => {
-	const QUEUE = await checkQueue(ID, queues, message);
-	if (QUEUE == null) return;
 	queues.remove(ID);
 }

@@ -21,7 +21,7 @@ export const searchplay = async (ID: string, queues: Wrapper, message: Message, 
 	const position = parseInt(args[0]);
 	
 	if (isNaN(position)) {
-		message.channel.send({ embeds: [messageProvider.invalidArguments("searchplay", aliases, usage)] });
+		message.channel.send({ embeds: [messageProvider.invalidArguments("searchPlay", aliases, usage)] });
 		return;
 	}
 

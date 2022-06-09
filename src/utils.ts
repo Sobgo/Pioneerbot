@@ -105,9 +105,9 @@ export const timestampToSec = (timestamp: string) => {
 	return sec;
 }
 
-export const songsToList = (list: Song[]) => {
+export const songsToList = (list: Song[], startPos: number = 1) => {
 	return list.map((element, index) => {
-		return `${index + 1}. ${element.title} | [${secToTimestamp(element.duration)}]` 
+		return `${index + startPos}. ${element.title} | [${secToTimestamp(element.duration)}]` 
 	}).join('\n');
 }
 

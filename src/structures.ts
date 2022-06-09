@@ -1,12 +1,12 @@
 'use strict';
 import { exec as ytdl } from 'youtube-dl-exec';
 import { secToTimestamp, ytsr, validateURL, getVideoID } from "./utils";
-import { TextChannel, GuildMember, DMChannel, NewsChannel, ThreadChannel, PartialDMChannel, Client, Intents, VoiceBasedChannel }from "discord.js";
+import { TextChannel, GuildMember, DMChannel, NewsChannel, ThreadChannel, PartialDMChannel, Client, Intents, VoiceBasedChannel, VoiceChannel }from "discord.js";
 import { AudioPlayer, VoiceConnection, AudioPlayerStatus, createAudioResource, AudioPlayerState } from "@discordjs/voice";
 import { messageProvider } from "./messageProvider";
 import { commandHandler } from './commandHandler';
 
-type MessageChannel = TextChannel | DMChannel | NewsChannel | ThreadChannel | PartialDMChannel;
+type MessageChannel = TextChannel | DMChannel | NewsChannel | ThreadChannel | PartialDMChannel | VoiceChannel;
 
 const TEN_MINUTES = 1000*60*10;
 
@@ -119,6 +119,8 @@ export class Queue {
 			console.log(newState.status);
 			const song = this.front();
 			if(song == undefined) throw "undefined song";
+			// no property send on VoiceChannel but works, probably types need to be updated
+			// @ts-ignore
 			this.textChannel.send({ embeds: [messageProvider.play(song)] });
 		});
 	}

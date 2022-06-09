@@ -27,7 +27,7 @@ export const importCommands = () => {
 	console.log("deployed commands:");
 	fs.readdirSync(`${__dirname}/commands`).forEach(async (file) => {
 		if (file.endsWith(".ts") || file.endsWith(".js")) {
-            const fileName = file.slice(0, -3);
+            const fileName = file.slice(0, -3).toLowerCase();
 			const command = await import(`./commands/${file}`);
 			console.log(fileName  + " (" + command.aliases + ")");
 			
