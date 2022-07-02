@@ -1,14 +1,12 @@
 'use strict';
-import { Queue, Song, Wrapper } from "./structures";
+import { Song } from "./structures";
 import fetch from "node-fetch";
 import * as cheerio from 'cheerio';
 import { isText } from 'domhandler';
 import { Message } from "discord.js";
-import { createConnection } from "./commands/join";
-import { messageProvider } from "./messageProvider";
 
-export const getVideoID = (url: string) => {
-	const validURLregex = /^https?:\/\/(youtu\.be\/|(www\.)?youtube\.com\/(embed|v|shorts)\/)/;
+export const getVideoId = (url: string) => {
+	const validURLregex = /(?:https?:\/\/)?((?:www|m|music|gaming)?(?:\.))?youtu?(\.)?be?(\.com)?\/?.?(?:watch|embed|v|shorts)?(?:.*v=|v\/|\/)([a-zA-Z0-9-_]{11})$/;
 	const validIDRegex = /^[a-zA-Z0-9-_]{11}$/;
 
 	const parsed = new URL(url);
@@ -45,32 +43,12 @@ export const getVideoID = (url: string) => {
 
 export const validateURL = (toValidate: string) => {
 	try {
-		getVideoID(toValidate);
+		getVideoId(toValidate);
 		return true;
 	}
 	catch {
 		return false;
 	}
-}
-
-export const checkQueue = async (ID: string, queues: Wrapper, message: Message, toJoin: boolean = false): Promise<Queue | null> => {
-	let queue = queues.get(ID);
-	let memberVoice = message.member?.voice;
-
-	if (queue == null && toJoin) {
-		queue = await createConnection(ID, queues, message);
-	}
-
-	if (!queue?.voiceChannelId) {
-		message.channel.send({embeds: [messageProvider.noBotChannel()]});
-		return null;
-	}
-
-	if (memberVoice == undefined || memberVoice.channelId == null || memberVoice.channelId != queue?.voiceChannelId) {
-		message.channel.send({embeds: [messageProvider.noChannel(queue?.voiceChannelName)]});
-		return null;
-	}
-	return queue;
 }
 
 export const secToTimestamp = (sec: string | number) => {
@@ -118,7 +96,7 @@ export const ytsr = async (query: string) => {
 
 	if (validateURL(query)) {
 		// send GET request to youtube search page
-		const url = "https://www.youtube.com/watch?v=" + getVideoID(query);
+		const url = "https://www.youtube.com/watch?v=" + getVideoId(query);
 		const response = await fetch(url);
 		const data = await response.text();
 		const $ = cheerio.load(data);
@@ -185,4 +163,22 @@ export const ytsr = async (query: string) => {
 		}
 	}
 	return extracted;
+}
+
+export const searchMany = async (message: Message, query: string, limit: number = 1, position: number = 0): Promise<Song[] | null> => {
+	
+	let list: Song[] = [];
+
+	if (validateURL(query)) { // direct link
+		let song = await Song.build(query, message.member);
+		if (song) list.push(song);
+	}
+	else { // query
+		const videos = (await ytsr(query)).slice(position, limit);
+		for (const element of videos) {
+			list.push(new Song(element.url, message.member?.toString(), element.title, element.author, element.duration));
+		}
+	}
+
+	return list;
 }

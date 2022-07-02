@@ -1,55 +1,41 @@
 'use strict'
 import { Message } from "discord.js";
-import { Wrapper, Song } from "../structures";
-import { messageProvider } from "../messageProvider";
+import { Wrapper } from "../structures";
+import { searchMany } from "../utils";
 
-import { join } from './join';
-import { searchList } from './search';
-import { checkQueue } from "../utils";
+export const settings = {
+	aliases : ["p"],
+	description : "Play a song to the voice channel, if no `[query]` specified it will show curently playing song.",
+	usage : "[query]",
+	category : "general",
+	list : true
+}
 
-export const aliases = ["p"];
-
-export const description = "Play a song to the voice channel, if no `[query]` specified it will show curently playing song.";
-export const usage = "[query]";
-
-export const play = async (ID: string, queues: Wrapper, message: Message, args: string[]) => {
+export const play = async (ID: string, wrapper: Wrapper, message: Message, args: string[]) => {
+	const queue = await wrapper.checkQueue(ID, message, true);
 	const query = args.map((element) => { return element }).join(' ');
+	if (!queue) return;
+
 	if (args.length != 0) {
-		await playSong(ID, queues, message, query);
+		// validate and add to queue
+		const result = await searchMany(message, query);
+		
+		if (result == null || result.length < 1) {
+			message.channel.send({ embeds: [wrapper.messageMenager.noResult()] });
+			return;
+		}
+	
+		queue.push(result[0]);
+
+		if (queue.length() == 1) {
+			queue.playResource();
+		}
+		else {
+			result.slice(1);
+			message.channel.send({ embeds: [wrapper.messageMenager.queueAdd(result, queue.length() - 1)] });
+		}
 	}
 	else {
-		await getStatus(ID, queues, message);
+		message.channel.send({ embeds: [wrapper.messageMenager.play(queue.front())] });
 	}
-}
-
-export const playSong = async (ID: string, queues: Wrapper, message: Message, query: string, position: number = 1): Promise<Song[] | null> => { 	
-	const QUEUE = await checkQueue(ID, queues, message, true);
-	if (QUEUE == null) return null;
-
-	// validate and add to queue
-	const result = await searchList(message, query, position, position-1);
-	
-	if (result == null || result.length < 1) {
-		message.channel.send({ embeds: [messageProvider.noResult()] });
-		return null;
-	}
-
-	QUEUE.push(result[0]);
-	
-	if(QUEUE.length() == 1) {
-		QUEUE.playResource();
-	}
-	else {
-		message.channel.send({ embeds: [messageProvider.queueAdd(result[0], QUEUE.length() - 1)] });
-	}
-
-	return result;
-}
-
-const getStatus = async (ID: string, queues: Wrapper, message: Message) => {
-	if (queues.get(ID) == null) await join(ID, queues, message);
-	const QUEUE = queues.get(ID);
-	if (QUEUE == null) return null;
-
-	message.channel.send({ embeds: [messageProvider.play(QUEUE.front())] });
 }

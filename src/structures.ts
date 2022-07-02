@@ -1,10 +1,18 @@
 'use strict';
 import { exec as ytdl } from 'youtube-dl-exec';
-import { secToTimestamp, ytsr, validateURL, getVideoID } from "./utils";
-import { TextChannel, GuildMember, DMChannel, NewsChannel, ThreadChannel, PartialDMChannel, Client, Intents, VoiceBasedChannel, VoiceChannel }from "discord.js";
-import { AudioPlayer, VoiceConnection, AudioPlayerStatus, createAudioResource, AudioPlayerState } from "@discordjs/voice";
-import { messageProvider } from "./messageProvider";
-import { commandHandler } from './commandHandler';
+import { 
+	TextChannel, GuildMember, DMChannel, NewsChannel, ThreadChannel, PartialDMChannel, Client, Intents, 
+	VoiceBasedChannel, VoiceChannel, Message 
+} from "discord.js";
+import { 
+	AudioPlayer, VoiceConnection, AudioPlayerStatus, createAudioResource, AudioPlayerState, createAudioPlayer, 
+	joinVoiceChannel, entersState, VoiceConnectionStatus, DiscordGatewayAdapterCreator 
+} from "@discordjs/voice";
+import { secToTimestamp, ytsr, validateURL, getVideoId } from "./utils";
+
+import { messageMenager } from "./messageMenager";
+import { commandMenager } from './commandMenager';
+import { databaseMenager } from './databaseMenager';
 
 type MessageChannel = TextChannel | DMChannel | NewsChannel | ThreadChannel | PartialDMChannel | VoiceChannel;
 
@@ -14,7 +22,8 @@ const FLAGS = {
 	output: '-', // output to stdout
 	quiet: true, // quiet mode
 	format: 'bestaudio[ext=webm+acodec=opus+asr=48000]/bestaudio', // output format
-	limitRate: '100K' // max download rate in bytes
+	limitRate: '100K', // max download rate in bytes
+	bufferSize: '16K', // buffer size in bytes
 }
 
 /**
@@ -54,6 +63,9 @@ export class Song {
 			}
 	}
 
+	/**
+	 * Returns a string representation of the song
+	 */
 	public toString () {
 		return `${ this.title } | [${ secToTimestamp(this.duration) }]`;
 	}
@@ -69,8 +81,8 @@ export class Song {
  * @param {MessageChannel} textChannel - text channel to send annaucements
  * @param {VoiceConnection} connection - bots connection to that quild
  * @param {AudioPlayer} player - audio player for that Queue
- * @param {bool} tracking - is tracking data enabled
- * @param {bool} loop - is loop enabled
+ * @param {boolean} tracking - is tracking data enabled
+ * @param {boolean} loop - is loop enabled
  */
 export class Queue {
 	public guildId: string;
@@ -80,7 +92,7 @@ export class Queue {
 	public connection: VoiceConnection;
 	public player: AudioPlayer;
 	public songs: Song[];
-	//public tracking: boolean;
+	public tracking: boolean;
 	public loop: boolean;
 	public cache: Song[] | null;
 	public timer: any;
@@ -96,32 +108,29 @@ export class Queue {
 		this.loop = false;
 		this.songs = [];
 		this.cache = null;
+		this.tracking = false;
+
 		this.wrapper = null;
 
 		this.timer = setInterval(this.checkActivity, TEN_MINUTES, this);
 
-
-		this.player.on(AudioPlayerStatus.Idle, (oldState: AudioPlayerState, newState: AudioPlayerState) => {
+		// triggers when song ends
+		this.player.on(AudioPlayerStatus.Idle, async (oldState: AudioPlayerState, newState: AudioPlayerState) => {
 			console.log(newState.status);
-			this.pop();
-			const song = this.front();
-			if(song == undefined) return;
-			const stream = ytdl(song.url, FLAGS, { stdio: ['ignore', 'pipe', 'ignore'] });
-			if (!stream.stdout) {
-				console.warn("couldn't read stdout");
-				return;
-			}
-			const resource = createAudioResource(stream.stdout, {});
-			this.player.play(resource);
+			if (!this.loop) this.pop();
+			this.playResource();
 		});
 
+		// triggers when song starts
 		this.player.on(AudioPlayerStatus.Playing, (oldState: AudioPlayerState, newState: AudioPlayerState) => {
+			
 			console.log(newState.status);
+
 			const song = this.front();
 			if(song == undefined) throw "undefined song";
 			// no property send on VoiceChannel but works, probably types need to be updated
 			// @ts-ignore
-			this.textChannel.send({ embeds: [messageProvider.play(song)] });
+			this.textChannel.send({ embeds: [messageMenager.play(song)] });
 		});
 	}
 	
@@ -134,6 +143,7 @@ export class Queue {
 			: await (queue.wrapper.client.guilds.fetch(queue.guildId));
 
 			if (guild) {
+				// TODO: check if users are not bots
 				let usersNumber = guild.me?.voice.channel?.members.size;
 				if (usersNumber && usersNumber < 2) {
 					queue.wrapper.remove(queue.guildId);
@@ -142,9 +152,33 @@ export class Queue {
 		}
 	}
 
+	private async addToDatabase (song: Song) {
+		// add song to database
+		const db = this.wrapper?.databaseMenager;
+
+		if (this.tracking && db) {
+			const guild = await db.getGuild(this.guildId);
+			
+			if (guild) {
+				const playlistId = guild.default_playlist_id;
+
+				if (playlistId) {
+					await db.addToPlaylist(playlistId, song);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Starts streaming first song form the queue to the voice channel, if other stream is being played it will be overridden.
+	 */
 	public playResource () {
 		const song = this.front();
 		if (song == undefined) return;
+
+		if (this.tracking) {
+			this.addToDatabase(song);
+		}
 	
 		const stream = ytdl(song.url, FLAGS, { stdio: ['ignore', 'pipe', 'ignore'] });
 		if (!stream.stdout) return;
@@ -188,7 +222,7 @@ export class Queue {
 
 	/**
 	 * Adds songs to the Queue from specified position inclusive and returns new lenght of the Queue.
-	 * @param {Number} start - Position in a Queue form which to start adding songs.
+	 * @param {number} start - Position in a Queue form which to start adding songs.
 	 * @param  {...Song} items - New songs to add to the Queue.
 	 */
 	public add (start: number, ...items: Song[]): number {
@@ -198,8 +232,8 @@ export class Queue {
 
 	/**
 	 * Removes songs form Queue and returns an array containing the songs that were removed.
-	 * @param {Number} start - Position in a Queue form which to start removing songs.
-	 * @param {Number} count - The number of songs to remove.
+	 * @param {number} start - Position in a Queue form which to start removing songs.
+	 * @param {number} count - The number of songs to remove.
 	 */
 	public remove (start: number, count: number = 1): Song[] {
 		return this.songs.splice(start, count);
@@ -210,17 +244,26 @@ export class Queue {
 	 * @param {Song} searchElement 
 	 */
 	public contains (searchElement: Song): boolean {
-		const id = getVideoID(searchElement.url);
-		return this.songs.some((element) => { return (getVideoID(element.url) == id) });
+		const id = getVideoId(searchElement.url);
+		return this.songs.some((element) => { return (getVideoId(element.url) == id) });
+	}
+
+	/**
+	 * Returns the song at specified position in a Queue, if position is out of range, null is returned.
+	 * @param {number} position
+	 */
+	public get (position: number) {
+		if (position < 0 || position >= this.songs.length) return null;
+		return this.songs[position];
 	}
 
 	/**
 	 * Returns a string representation of the Queue.
 	 * Note: first song is not returned since its currently playing song.
-	 * @param {Number} [count] - Number of songs to list. Default is 10.
+	 * @param {number} [count] - Number of songs to list. Default is 10.
 	 * @example console.log(ServerQueue.toString()) // Logs:
-	 * // 1. The title of the first song [duration]
-	 * // 2. The title of the second song [duration]
+	 * // 1. The title of the first song | [duration]
+	 * // 2. The title of the second song | [duration]
 	 * // ...
 	 */
 	public toString (count: number = 10): string {
@@ -231,13 +274,15 @@ export class Queue {
 }
 
 /**
- * Top level container
+ * Top level container, provides access to all existing Queues and menagers.
  */
 export class Wrapper {
 
 	private queues: Record<string, Queue> = {};
 	public client: Client;
-	public commandHandler = commandHandler;
+	public commandMeneger = commandMenager;
+	public messageMenager = messageMenager;
+	public databaseMenager = new databaseMenager();
 	public prefix: string;
 
 	public constructor (prifex: string) {
@@ -255,18 +300,19 @@ export class Wrapper {
 	}
 
 	/**
-	 * binds new Queue to quild id.
-	 * @param {String} id - Id of a guild
+	 * binds new Queue to guild id.
+	 * @param {string} id - Id of a guild
 	 * @param {Queue} element - new Queue
 	 */
-	public add (id: string, element: Queue): void {
+	public async add (id: string, element: Queue) : Promise<void> {
 		element.wrapper = this;
+		element.tracking = await this.databaseMenager.checkGuild(id);
 		this.queues[id] = element;
 	}
 
 	/**
 	 * Removes Queue with specified id. If no Queue is found false is returned else true is returned.
-	 * @param {String} id - Id of a guild
+	 * @param {string} id - Id of a guild
 	 */
 	public remove (id: string): boolean {
 		if (!(id in this.queues)) return false;
@@ -278,10 +324,75 @@ export class Wrapper {
 
 	/**
 	 * Returns Queue with specified id or null if no Queue is found.
-	 * @param {String} id - Id of a guild
+	 * @param {string} id - Id of a guild
 	 */
 	public get (id: string): Queue | null {
 		if (!(id in this.queues)) return null;
 		return this.queues[id];
+	}
+
+	/**
+	 * Connects bot to voice channel and creates a new Queue for that channel.
+	 * @param {string} ID - Id of a guild
+	 * @param {Message} message - Message from which the command was called
+	 */
+	public createConnection = async (ID: string, message: Message) => {
+	
+		// check if the user is in a voice channel
+		const voice = message.member?.voice;
+		if (voice == undefined || voice.channel == null || voice.channelId == null ) {
+			message.channel.send({embeds: [this.messageMenager.noChannel()]});
+			return null;
+		}
+		
+		const player = createAudioPlayer();
+	
+		const connection = joinVoiceChannel({
+			channelId: voice.channelId,
+			guildId: ID,
+			adapterCreator: voice.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
+			selfDeaf: false
+		});
+	
+		if (this.get(ID) == null) {
+			await this.add(ID, new Queue(ID, voice.channel, message.channel, connection, player));
+		}
+	
+		try {
+			await entersState(connection, VoiceConnectionStatus.Ready, 10e3);
+		}
+		catch (err) {
+			connection.destroy();
+			message.channel.send("couldn't connect to channel");
+		}
+	
+		connection.subscribe(player);
+		return this.get(ID);
+	}
+
+	/**
+	 * Check if queue exists and if user and bot are in the same voice channel. If toJoin is true then if queue doesn't exist it will be created.
+	 * @param {string} ID - Id of a guild
+	 * @param {Message} message - Message from which the command was called
+	 * @param {boolean} toJoin - If true then if queue doesn't exist it will be created
+	 */
+	public async checkQueue (ID: string, message: Message, toJoin: boolean = false): Promise<Queue | null> {
+		let queue = this.get(ID);
+		let memberVoice = message.member?.voice;
+	
+		if (queue == null && toJoin) {
+			queue = await this.createConnection(ID, message);
+		}
+	
+		if (!queue?.voiceChannelId) {
+			message.channel.send({embeds: [this.messageMenager.noBotChannel()]});
+			return null;
+		}
+	
+		if (memberVoice == undefined || memberVoice.channelId == null || memberVoice.channelId != queue?.voiceChannelId) {
+			message.channel.send({embeds: [this.messageMenager.noChannel(queue?.voiceChannelName)]});
+			return null;
+		}
+		return queue;
 	}
 }

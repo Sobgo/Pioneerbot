@@ -3,3 +3,5 @@
 package-lock.json
 serverdata.json
 node_modules
+database.db
+prisma/migrations

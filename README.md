@@ -1,5 +1,5 @@
 # Pioneer music bot
-Pioneer is a discord music bot written in typescript and using discord.js API  
+Pioneer is a discord music bot written in typescript and using discord.js API v13  
 It lest you play music from youtube direclty to voice channel  
 Pioneer is intended for private usage (self hosting) to avoid issues with copyrights
 
@@ -7,7 +7,7 @@ Pioneer is intended for private usage (self hosting) to avoid issues with copyri
 - search videos by URL or query and play them on voice channels
 - queue songs to play
 - skip or remove songs form queue
-- create playlists and track song's likes/dislikes form your discord server users (TODO in version 2.x)
+- create playlists and track song's likes/dislikes form your discord server users (only partially implemented in 2.x)
 
 For list of all available commands you can type !help in chat  
 You can change prefix in config.json
@@ -23,7 +23,8 @@ Then you will need to either build the application from the source code or use o
 You can also just clone this repository and install it with dev dependencies using: `npm i -D` and then `npm run dev`  
 (you might want to install ts-node globally for easy access in command line)
 
-When first running the app you will be prompted to specify your token in terminal, you can also paste in manually in config.json  
+When first running the app you will be prompted to specify your token in terminal, you can also paste in manually in config.json 
+You will also be prompted to build database from schema with `npx prisma db push`  
 Then you will need to invite your bot to one of your discord servers  
 Also make sure that your bot has all necessary premissions if you're not sure which just give it admin.
 
@@ -40,27 +41,9 @@ Also make sure that your bot has all necessary premissions if you're not sure wh
 You can add your own commands by creating file `[commandname].ts` in commands directory  
 Inside this file there should be en exported function with the same name as filename taking 4 arguments:  
 ID: string, queues: Wrapper, message: Message, args: string[]  
-additionally you maight want to specify three variables aliases: String[], description: String and usage: String  
-first one contains all command aliases and other two are used in help command  
 
-example (commands/hello.ts):
-```
-import { Message } from "discord.js";
-import { Wrapper } from "../structures";
-
-export const aliases = ["hi"];
-export const description = "greets you";
-export const usage = "[name]"; // everything after (prefix)name that user can type
-
-export const hello = async (ID: string, queues: Wrapper, message: Message, args: string[]) => {
-	if (args[0]) {
-		message.channel.send("Hi " + args[0] + "!");
-	}
-	else {
-		message.channel.send("Hi human!");
-	}
-}
-```
+Additionally every command should also export a settings object. It is used to set up aliases and to display command properly in help menu.
+You can check example command in commands/example.ts
 
 ## Bug reports and contributing
 If you find any bugs feel free to report them using guthub issues and if you want to help you can make pull requests.

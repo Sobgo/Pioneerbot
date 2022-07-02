@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["improvedQueryRaw"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../database.db"
+}
+
+model Guild {
+  id            String @id
+  default_playlist_id Int?
+
+  playlist Playlist?
+}
+
+model Song {
+  ytid   String @id
+  title  String
+  author String
+  duration Int
+
+  playlists Content[]
+}
+
+model Playlist {
+  id       Int    @id @default(autoincrement())
+  name     String
+  guild_id String
+
+  songs Content[]
+
+  guild Guild     @relation(fields: [guild_id], references: [id], onDelete: Cascade)
+}
+
+model Content {
+  id          Int    @id @default(autoincrement())
+  playlist_id Int
+  song_ytid   String
+
+  song     Song     @relation(fields: [song_ytid], references: [ytid], onDelete: Cascade)
+  playlist Playlist @relation(fields: [playlist_id], references: [id], onDelete: Cascade)
+}

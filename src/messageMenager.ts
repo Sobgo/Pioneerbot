@@ -4,7 +4,7 @@ import { Song } from "./structures";
 import { secToTimestamp, songsToList } from "./utils";
 import config from '../config.json';
 
-export const messageProvider: Record<string, any> = {
+export const messageMenager: Record<string, any> = {
 	invalidArguments: (commandName: string, aliases: string[], usage: string) => {
 		return new MessageEmbed()
 			.setColor('#ff0000')
@@ -59,16 +59,27 @@ export const messageProvider: Record<string, any> = {
 			.setDescription(`Bot is not in a channel. use \`${config.prefix + "join"}\``);
 	},
 
-	queueAdd: (song: Song, position: Number) => {
-		return new MessageEmbed()
+	queueAdd: (songs: Song[], position: number) => {
+		if (songs.length == 1) {
+
+			const song = songs[0];
+
+			return new MessageEmbed()
+				.setColor('#ff0000')
+				.setDescription("**" + Util.escapeMarkdown(song.title) + "**")
+				.setTitle('**:memo:  Added to queue:**')
+				.setURL(song.url)
+				.addFields(
+					{ name: 'Author', value: song.author, inline: true },
+					{ name: 'Length', value: secToTimestamp(song.duration), inline: true },
+					{ name: 'Position in queue', value: '#' + String(position), inline: true })
+		}
+		else {
+			return new MessageEmbed()
 			.setColor('#ff0000')
-			.setDescription("**" + Util.escapeMarkdown(song.title) + "**")
+			.setDescription("**" + Util.escapeMarkdown(songsToList(songs, position)) + "**")
 			.setTitle('**:memo:  Added to queue:**')
-			.setURL(song.url)
-			.addFields(
-				{ name: 'Author', value: song.author, inline: true },
-				{ name: 'Length', value: secToTimestamp(song.duration), inline: true },
-				{ name: 'Position in queue', value: '#' + String(position), inline: true })
+		}
 	},
 
 	play: (song: Song | undefined) => {
@@ -146,5 +157,40 @@ export const messageProvider: Record<string, any> = {
 			.setColor('#ff0000')
 			.setTitle(':x: No result found')
 			.setDescription('No result was found for a given query. This video might not exist or is age restricted. Try different one.');
+	},
+
+	trackingEnabled: (confirmed: boolean = false) => {
+		if (confirmed) {
+			return new MessageEmbed()
+			.setColor('#00ff00')
+			.setTitle(':white_check_mark: Tracking enabled')
+		}
+		else {
+			return new MessageEmbed()
+			.setColor('#00ff00')
+			.setTitle(`This guild is not being tracked. To enable tracking, type \`${config.prefix}track enable\``)
+			.setDescription('Enabling tracking will make the bot save played songs to a database. This history can be used by tracking commands. To see all comamands type \`' + config.prefix + 'help tracking\`');
+		}
+	},
+
+	trackingDisabled: (confirmed: boolean = false) => {
+		if (confirmed) {
+			return new MessageEmbed()
+			.setColor('#00ff00')
+			.setTitle(':white_check_mark: Tracking disabled')
+		}
+		else {
+			return new MessageEmbed()
+			.setColor('#00ff00')
+			.setTitle(`This guild is being tracked. To disable tracking, type \`${config.prefix}track disable\``)
+			.setDescription('Disabling tracking will remove all guild history. This action is permanent and cannot be undone. All tracking commands will be disabled.');
+		}
+	},
+
+	trackingRequired: () => {
+		return new MessageEmbed()
+			.setColor('#ff0000')
+			.setTitle(':x: Tracking required')
+			.setDescription('Tracking is required to use this command. Please enable tracking first.');
 	}
 }
