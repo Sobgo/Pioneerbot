@@ -2,6 +2,8 @@ import { PrismaClient, Prisma, Content } from "@prisma/client";
 import { Song } from "./structures";
 import { getVideoId, timestampToSec } from "./utils";
 
+const URL = "https://www.youtube.com/watch?v=";
+
 export class databaseMenager {
 
 	private db = new PrismaClient();
@@ -102,7 +104,7 @@ export class databaseMenager {
 				}
 			});
 
-			if (playlist) return playlist;
+			if (playlist) return;
 
 			// add playlist to database
 			return (
@@ -114,8 +116,6 @@ export class databaseMenager {
 				})
 			);
 		}
-
-		return null;
 	}
 
 	public async addSong(song: Song) {
@@ -236,8 +236,6 @@ export class databaseMenager {
 		// selects <amount> of songs from playlist with <playlistId> in random order
 		const result = await this.db.$queryRaw<Content[]>(Prisma.sql([`SELECT * FROM content WHERE playlist_id = ${playlistId} ORDER BY random() LIMIT ${amount}`]));
 
-		const url = "https://www.youtube.com/watch?v=";
-
 		// convert to Song objects
 		let converted = await (Promise.all(result.map(async content => {
 			// fetch song from db by ytid
@@ -245,7 +243,7 @@ export class databaseMenager {
 			if (!song) return null;
 
 			return new Song(
-				url + content.song_ytid,
+				URL + content.song_ytid,
 				undefined,
 				song.title,
 				song.author,
@@ -254,6 +252,63 @@ export class databaseMenager {
 		})));
 
 		return converted.filter((s): s is Song => s != null);
+	}
+
+	public async getOldestFromPlaylist(playlistId: number, amount: number) {
+		const playlist = await this.getPlaylist(playlistId);
+		if (!playlist) return null;
+
+		const result = await this.db.content.findMany({
+			where: {
+				playlist_id: playlistId
+			},
+			orderBy: {
+				playtime_date: "desc"
+			},
+			take: amount
+		});
+
+		// convert to Song objects
+		let converted = await (Promise.all(result.map(async content => {
+			// fetch song from db by ytid
+			const song = await this.getSong(content.song_ytid);
+			if (!song) return null;
+
+			return new Song(
+				URL + content.song_ytid,
+				undefined,
+				song.title,
+				song.author,
+				song.duration.toString()
+			);
+		})));
+
+		return converted.filter((s): s is Song => s != null);
+	}
+
+	public async updateSongPLaytime(ytid: string, playlistId: number, date: Date = new Date()) {
+
+		// find content id
+		const content = await this.db.content.findFirst({
+			where: {
+				AND: {
+					playlist_id: playlistId,
+					song_ytid: ytid
+				}
+			}
+		});
+
+		if (!content) return;
+
+		// update playtime
+		await this.db.content.update({
+			where: {
+				id: content.id
+			},
+			data: {
+				playtime_date: date
+			}
+		});
 	}
 }
 

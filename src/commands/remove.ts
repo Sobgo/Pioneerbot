@@ -23,7 +23,7 @@ export const remove = async (ID: string, wrapper: Wrapper, message: Message, arg
 		return;
 	}
 
-	if (start <= 0 || count <= 0) {
+	if (start <= 0 || start > queue.length() ||count <= 0) {
 		message.channel.send({ embeds: [wrapper.messageMenager.outOfScope()]});
 		return;
 	}

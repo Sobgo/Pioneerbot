@@ -106,6 +106,6 @@ export const commandMenager = async (ID: string, PREFIX:string, wrapper: Wrapper
 		await loadedCommands.functions[loadedCommands[commandName]](ID, wrapper, message, args);
 	}
 	else { // no such command
-		message.channel.send({embeds: [wrapper.messageMenager.invalidCommand(commandName, loadedCommands.usages["help"])]});
+		message.channel.send({embeds: [wrapper.messageMenager.invalidCommand(commandName)]});
 	}
 }

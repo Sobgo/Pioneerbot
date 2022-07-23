@@ -3,14 +3,14 @@ import { Message } from "discord.js";
 import { Wrapper } from "../structures";
 
 export const settings = {
-	aliases : ["pr"],
-	description : "selects [count] songs from guild history and adds them to queue, default [count] is 1",
+	aliases : ["po"],
+	description : "selects [count] songs from guild history that haven't been played for the longest time and adds them to queue, default [count] is 1",
 	usage : "[count]",
 	category : "tracking",
 	list : true
 }
 
-export const playrandom = async (ID: string, wrapper: Wrapper, message: Message, args: string[]) => {
+export const playoldest = async (ID: string, wrapper: Wrapper, message: Message, args: string[]) => {
 	const db = wrapper.databaseMenager;
 	const guild = await db.getGuild(ID);
 	const queue = await wrapper.checkQueue(ID, message, true);
@@ -21,11 +21,11 @@ export const playrandom = async (ID: string, wrapper: Wrapper, message: Message,
 		const amount = args[0] ? parseInt(args[0]) : 1;
 
 		if (isNaN(amount)) {
-			message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments("playrandom", settings.aliases, settings.usage)] });
+			message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments("playoldest", settings.aliases, settings.usage)] });
 			return;
 		}
 
-		let result = await db.getRandomFromPlaylist(playlistId, amount);
+		let result = await db.getOldestFromPlaylist(playlistId, amount);
 
 		if (result == null || result.length == 0) return;
 

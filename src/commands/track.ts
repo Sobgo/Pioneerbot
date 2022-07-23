@@ -3,7 +3,7 @@ import { Wrapper } from "../structures";
 
 export const settings = {
 	aliases : ["t"],
-	description : "check enable or disable tracking for guild, for more information use track without arguments",
+	description : "check, enable or disable tracking for guild, for more information use track without arguments",
 	usage : "[enable/disable]",
 	category : "general",
 	list : true

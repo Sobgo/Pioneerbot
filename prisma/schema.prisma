@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["improvedQueryRaw"]
 }
 
 datasource db {
@@ -11,8 +10,8 @@ datasource db {
 model Guild {
   id            String @id
   default_playlist_id Int?
-
-  playlist Playlist?
+  
+  playlist Playlist[]
 }
 
 model Song {
@@ -38,6 +37,7 @@ model Content {
   id          Int    @id @default(autoincrement())
   playlist_id Int
   song_ytid   String
+  playtime_date DateTime @default(now())
 
   song     Song     @relation(fields: [song_ytid], references: [ytid], onDelete: Cascade)
   playlist Playlist @relation(fields: [playlist_id], references: [id], onDelete: Cascade)

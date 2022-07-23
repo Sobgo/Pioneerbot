@@ -1,6 +1,6 @@
 {
   "name": "pioneer",
-  "version": "dev2.2.0",
+  "version": "2.2.0",
   "description": "Discord music bot using discord.js v13",
   "main": "src/index.ts",
   "scripts": {
@@ -10,21 +10,21 @@
   "author": "Sobgo",
   "license": "MIT",
   "dependencies": {
-    "@discordjs/opus": "^0.5.3",
-    "@discordjs/voice": "^0.7.5",
-    "@prisma/client": "^3.15.1",
-    "cheerio": "^1.0.0-rc.10",
-    "discord.js": "^13.6.0",
-    "prisma": "^3.15.1",
+    "@discordjs/opus": "^0.8.0",
+    "@discordjs/voice": "^0.10.0",
+    "@prisma/client": "^4.0.0",
+    "cheerio": "^1.0.0-rc.12",
+    "discord.js": "^13.8.1",
+    "prisma": "^4.0.0",
     "sqlite3": "^5.0.8",
     "tweetnacl": "^1.0.3",
-    "youtube-dl-exec": "^2.0.2"
+    "youtube-dl-exec": "^2.0.12"
   },
   "devDependencies": {
-    "@types/node": "^16.11.9",
+    "@types/node": "^18.0.3",
     "@types/sqlite3": "^3.1.8",
-    "ts-node": "^10.4.0",
-    "tslib": "^2.3.1",
-    "typescript": "^4.5.2"
+    "ts-node": "^10.8.2",
+    "tslib": "^2.4.0",
+    "typescript": "^4.7.4"
   }
 }

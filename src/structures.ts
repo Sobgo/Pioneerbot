@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 import { 
 	AudioPlayer, VoiceConnection, AudioPlayerStatus, createAudioResource, AudioPlayerState, createAudioPlayer, 
-	joinVoiceChannel, entersState, VoiceConnectionStatus, DiscordGatewayAdapterCreator 
+	joinVoiceChannel, entersState, VoiceConnectionStatus
 } from "@discordjs/voice";
 import { secToTimestamp, ytsr, validateURL, getVideoId } from "./utils";
 
@@ -128,8 +128,7 @@ export class Queue {
 
 			const song = this.front();
 			if(song == undefined) throw "undefined song";
-			// no property send on VoiceChannel but works, probably types need to be updated
-			// @ts-ignore
+
 			this.textChannel.send({ embeds: [messageMenager.play(song)] });
 		});
 	}
@@ -164,6 +163,7 @@ export class Queue {
 
 				if (playlistId) {
 					await db.addToPlaylist(playlistId, song);
+					await db.updateSongPLaytime(getVideoId(song.url), playlistId);
 				}
 			}
 		}
@@ -350,7 +350,7 @@ export class Wrapper {
 		const connection = joinVoiceChannel({
 			channelId: voice.channelId,
 			guildId: ID,
-			adapterCreator: voice.guild.voiceAdapterCreator as DiscordGatewayAdapterCreator,
+			adapterCreator: voice.guild.voiceAdapterCreator,
 			selfDeaf: false
 		});
 	
