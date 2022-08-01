@@ -138,7 +138,7 @@ export const messageMenager: Record<string, any> = {
 			.setDescription('**' + Util.escapeMarkdown(songsToList(songs)) + '**');
 	},
 
-	queueList: (songs: Song[]) => {
+	queueList: (songs: Song[], position: number = 1) => {
 		if (songs.length == 0) {
 			return new MessageEmbed()
 				.setColor('#ff0000')
@@ -148,7 +148,7 @@ export const messageMenager: Record<string, any> = {
 			return new MessageEmbed()
 				.setColor('#ff0000')
 				.setTitle('**:page_with_curl:  Songs in queue:**')
-				.setDescription('**' + Util.escapeMarkdown(songsToList(songs)) + '**');
+				.setDescription('**' + Util.escapeMarkdown(songsToList(songs, position)) + '**');
 		}
 	},
 

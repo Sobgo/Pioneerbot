@@ -101,7 +101,7 @@ export const ytsr = async (query: string) => {
 		const data = await response.text();
 		const $ = cheerio.load(data);
 
-		// get all script tags and search for the one that contains vidoe info
+		// get all script tags and search for the one that contains video info
 		const allscripts = $('script');
 		let song = new Song('', undefined, '', '', '');
 		let fallback = "";

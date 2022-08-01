@@ -5,7 +5,7 @@ import { searchMany } from "../utils";
 
 export const settings = {
 	aliases : ["pt"],
-	description : "Ads a song to the top of the queue and if queue was empty plays added song.",
+	description : "Adds a song to the top of the queue and if queue was empty plays added song.",
 	usage : "[query]",
 	category : "general",
 	list : true

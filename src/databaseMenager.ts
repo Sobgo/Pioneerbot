@@ -263,7 +263,7 @@ export class databaseMenager {
 				playlist_id: playlistId
 			},
 			orderBy: {
-				playtime_date: "desc"
+				playtime_date: "asc"
 			},
 			take: amount
 		});
