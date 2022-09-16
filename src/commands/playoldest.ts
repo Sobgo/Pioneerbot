@@ -3,8 +3,10 @@ import { Message } from "discord.js";
 import { Wrapper } from "../structures";
 
 export const settings = {
-	aliases : ["po"],
-	description : "selects [count] songs from guild history that haven't been played for the longest time and adds them to queue, default [count] is 1",
+	name : "Play oldest",
+	invokes : ["playoldest", "po"],
+	description : "Selects `[count]` songs from guild history that haven't been played for the longest time "
+				+ "and adds them to the queue, if no `[count]` is specified it will select one song.",
 	usage : "[count]",
 	category : "tracking",
 	list : true
@@ -21,7 +23,7 @@ export const playoldest = async (ID: string, wrapper: Wrapper, message: Message,
 		const amount = args[0] ? parseInt(args[0]) : 1;
 
 		if (isNaN(amount)) {
-			message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments("playoldest", settings.aliases, settings.usage)] });
+			message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments(settings)] });
 			return;
 		}
 

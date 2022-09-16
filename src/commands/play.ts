@@ -4,8 +4,10 @@ import { Wrapper } from "../structures";
 import { searchMany } from "../utils";
 
 export const settings = {
-	aliases : ["p"],
-	description : "Play a song to the voice channel, if no `[query]` specified it will show curently playing song.",
+	name : "Play",
+	invokes : ["play", "p"],
+	description : "Searches song with the given `[query]` and adds the first result to the back of the queue"
+				+ "if no `[query]` is specified it will instead show currently playing song if any.",
 	usage : "[query]",
 	category : "general",
 	list : true

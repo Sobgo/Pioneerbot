@@ -3,9 +3,9 @@ import { Message } from "discord.js";
 import { Wrapper } from "../structures";
 
 export const settings = {
-	aliases : ["l"],
-	description : "Request bot to leave the voice channel.",
-	usage : "",
+	name : "Leave",
+	invokes : ["leave", "l"],
+	description : "Requests bot to leave the voice channel.",
 	category : "general",
 	list : true
 }

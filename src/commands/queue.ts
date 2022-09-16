@@ -3,8 +3,10 @@ import { Message } from "discord.js";
 import { Wrapper } from "../structures";
 
 export const settings = {
-	aliases : ["q"],
-	description : "Show the current queue from `[position]` up to 10 songs, default `[position]` is 1.",
+	name : "Queue",
+	invokes : ["queue", "q"],
+	description : "Shows the current queue from `[position]` up to 10 songs, "
+				+ "if no `[position]` is specified it will start form the first song in the queue.",
 	usage : "[position]",
 	category : "general",
 	list : true
@@ -16,7 +18,7 @@ export const queue = async (ID: string, wrapper: Wrapper, message: Message, args
 
 	let position = args[0] ? parseInt(args[0]) : 1;
 	if (isNaN(position)) {
-		message.channel.send({embeds: [wrapper.messageMenager.invalidArguments("queue", settings.aliases, settings.usage)]});
+		message.channel.send({embeds: [wrapper.messageMenager.invalidArguments(settings)]});
 		return;
 	}
 
@@ -24,6 +26,7 @@ export const queue = async (ID: string, wrapper: Wrapper, message: Message, args
 		message.channel.send({embeds: [wrapper.messageMenager.outOfScope()]});
 		return;
 	}
-
-	message.channel.send({embeds: [wrapper.messageMenager.queueList(queue.songs.slice(position, position + 10), position)]});
+	
+	const toList = queue.songs.slice(position, position + 10);
+	message.channel.send({embeds: [wrapper.messageMenager.queueList(toList, position)]});
 }

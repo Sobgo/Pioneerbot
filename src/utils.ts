@@ -4,6 +4,7 @@ import fetch from "node-fetch";
 import * as cheerio from 'cheerio';
 import { isText } from 'domhandler';
 import { Message } from "discord.js";
+import { Song as PrismaSong, Playlist } from "@prisma/client";
 
 export const getVideoId = (url: string) => {
 	const validURLregex = /(?:https?:\/\/)?((?:www|m|music|gaming)?(?:\.))?youtu?(\.)?be?(\.com)?\/?.?(?:watch|embed|v|shorts)?(?:.*v=|v\/|\/)([a-zA-Z0-9-_]{11})$/;
@@ -83,9 +84,16 @@ export const timestampToSec = (timestamp: string) => {
 	return sec;
 }
 
-export const songsToList = (list: Song[], startPos: number = 1) => {
+export const songsToList = (list: Song[] | PrismaSong[], startPos: number = 1) => {
 	return list.map((element, index) => {
 		return `${index + startPos}. ${element.title} | [${secToTimestamp(element.duration)}]` 
+	}).join('\n');
+}
+
+export const playlistsToList = (list: Playlist[]) => {
+	if (!list.length) return "No playlists found";
+	return list.map((element) => {
+		return `${element.id}. ${element.name}` 
 	}).join('\n');
 }
 
@@ -163,6 +171,23 @@ export const ytsr = async (query: string) => {
 		}
 	}
 	return extracted;
+}
+
+export const shuffle = (array: any[]) => {
+	let currentIndex = array.length,  randomIndex;
+	  
+	// While there remain elements to shuffle.
+	while (currentIndex != 0) {
+	  
+		// Pick a remaining element.
+		randomIndex = Math.floor(Math.random() * currentIndex);
+		currentIndex--;
+	  
+		// And swap it with the current element.
+		[array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+	}
+	  
+	return array;
 }
 
 export const searchMany = async (message: Message, query: string, limit: number = 1, position: number = 0): Promise<Song[] | null> => {

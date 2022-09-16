@@ -3,9 +3,9 @@ import { Message } from "discord.js";
 import { Wrapper } from "../structures";
 
 export const settings = {
-	aliases : [],
+	name : "Loop",
+	invokes : ["loop"],
 	description : "Toggles loop mode.",
-	usage : "",
 	category : "general",
 	list : true
 }

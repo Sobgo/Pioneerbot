@@ -1,6 +1,6 @@
 {
   "name": "pioneer",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Discord music bot using discord.js v13",
   "main": "src/index.ts",
   "scripts": {

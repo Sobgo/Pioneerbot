@@ -3,9 +3,11 @@ import { Message } from "discord.js";
 import { Wrapper } from "../structures";
 
 export const settings = {
-	aliases : ["s"],
-	description : "Skip to `[count]` position in the queue, if no `[count]` is specified it will skip currently playing song "
-	+ "and if `[count]` exceeds the queue length it will skip to the end of the queue.",
+	name : "Skip",
+	invokes : ["skip", "s"],
+	description : "Skips the `[count]` songs from the queue, "
+				+ "if no `[count]` is specified it will skip currently playing song "
+				+ "and if `[count]` exceeds the queue length it will skip all the songs in the queue.",
 	usage : "[count]",
 	category : "general",
 	list : true
@@ -18,7 +20,7 @@ export const skip = async (ID: string, wrapper: Wrapper, message: Message, args:
 	const count = args[0] ? parseInt(args[0]) : 1;
 
 	if (isNaN(count)) {
-		message.channel.send({embeds: [wrapper.messageMenager.invalidArguments("skip", settings.aliases, settings.usage)]});
+		message.channel.send({embeds: [wrapper.messageMenager.invalidArguments(settings)]});
 		return;
 	}
 

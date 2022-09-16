@@ -3,8 +3,10 @@ import { Message } from "discord.js";
 import { Wrapper } from "../structures";
 
 export const settings = {
-	aliases : ["pr"],
-	description : "selects [count] songs from guild history and adds them to queue, default [count] is 1",
+	name : "Play random",
+	invokes : ["playrandom", "pr"],
+	description : "Selects `[count]` random songs from guild history and adds them to queue, "
+				+ "if no `[count]` is specified it will select one song.",
 	usage : "[count]",
 	category : "tracking",
 	list : true
@@ -21,7 +23,7 @@ export const playrandom = async (ID: string, wrapper: Wrapper, message: Message,
 		const amount = args[0] ? parseInt(args[0]) : 1;
 
 		if (isNaN(amount)) {
-			message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments("playrandom", settings.aliases, settings.usage)] });
+			message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments(settings)] });
 			return;
 		}
 

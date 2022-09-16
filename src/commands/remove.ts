@@ -3,9 +3,11 @@ import { Message } from "discord.js";
 import { Wrapper } from "../structures";
 
 export const settings = {
-	aliases : ["r"],
-	description : "Remove songs from the queue starting from `<position>` and ending at\n `<position> + [count]`, "
-	+ "if count is not specified, it will remove 1 song and if count exceeds the queue length, it will remove all songs.",
+	name : "Remove",
+	invokes : ["remove", "r"],
+	description : "Removes `[count]` songs from the queue starting from `<position>`, "
+				+ "if no `[count]` is specified it will remove one song and if `[count]` "
+				+ "exceeds the queue length it will remove all songs from `<position>` to the end of the queue.",
 	usage : "<position> [count]",
 	category : "general",
 	list : true
@@ -19,7 +21,7 @@ export const remove = async (ID: string, wrapper: Wrapper, message: Message, arg
 	const count = args[1] ? parseInt(args[1]) : 1;
 
 	if (isNaN(start) || isNaN(count)) {
-		message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments("remove", settings.aliases, settings.usage)] });
+		message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments(settings)] });
 		return;
 	}
 

@@ -2,9 +2,13 @@ import { Message } from "discord.js";
 import { Wrapper } from "../structures";
 
 export const settings = {
-	aliases : ["t"],
-	description : "check, enable or disable tracking for guild, for more information use track without arguments",
-	usage : "[enable/disable]",
+	name : "Tracking",
+	invokes : ["track", "t"],
+	description : "Checks, enables or disables tracking for a guild. "
+				+ "When enabled all played songs will be saved to a guild history "
+				+ "and you will be able you use commands from tracking category. "
+				+ "Disabling tracking removes all guild history.",
+	usage : "[\"enable\" / \"disable\"]",
 	category : "general",
 	list : true
 }

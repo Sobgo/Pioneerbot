@@ -4,9 +4,10 @@ import { Wrapper } from "../structures";
 import { searchMany } from "../utils";
 
 export const settings = {
-	aliases : ["sp"],
-	description : "Search and play a song to the voice channel, if no `[query]` is specified previous query will be used, " 
-	+ "`<position>` is song's position on youtube search result page.",
+	name : "Search and play",
+	invokes : ["searchplay", "sp"],
+	description : "Adds a song appearing in `<position>` when serached with `[query]` to the back of the queue "
+				+ "if no `[query]` is specified it will try to use previous cached query.",
 	usage : "<position> [query]",
 	category : "general",
 	list : true
@@ -20,7 +21,7 @@ export const searchplay = async (ID: string, wrapper: Wrapper, message: Message,
 
 	// validate args
 	if (isNaN(position)) {
-		message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments("searchplay", settings.aliases, settings.usage)] });
+		message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments(settings)] });
 		return;
 	}
 

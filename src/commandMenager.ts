@@ -1,111 +1,177 @@
 'use strict'
-import { Message, MessageEmbed } from 'discord.js';
 import * as fs from "fs";
-import { messageMenager } from './messageMenager';
+import { Message, MessageEmbed } from 'discord.js';
 import { Wrapper } from './structures';
+import { messageMenager } from "./messageMenager";
 import config from '../config.json';
 
-let loadedCommands: Record<string, any> = {};
+export class commandMenager {
 
-const getUsage = (commandName: string, commandSettings: Record<string, any>) => {
-	return (
-		"`" + config.prefix + commandName +
-		(commandSettings.aliases ? " (" + commandSettings.aliases + ")" : "") +
-		(commandSettings.usage ? " " + commandSettings.usage : "") + "`"
-	)
-}
+	private DIR = `${__dirname}/commands`;
 
-export const importCommands = () => {
+	private commands: Record<string, any> = {
+		invokes: {},
+		functions: {},
+		settings: {},
+		categories: []
+	};
 
-	let commands: Record<string, any> = {};
+	public importCommands () {
 
-	commands.settings = {}
-	commands.functions = {};
-	commands.categories = [];
+		console.log("deployed commands:");
 
-	console.log("deployed commands:");
+		// for each file in commands direcotry
+		fs.readdirSync(this.DIR).forEach(async (filename) => {
+			// compiled || tsnode
+			if (filename.endsWith(".js") || filename.endsWith(".ts")) {
+				
+				const name = filename.slice(0, -3);
+				const command = await import(`./commands/${filename}`);
+				
+				// check if settings object exists and create one if not
+				if (command.settings == undefined) { command.settings = {} };
 
-	fs.readdirSync(`${__dirname}/commands`).forEach(async (file) => {
-		if (file.endsWith(".ts") || file.endsWith(".js")) {
+				// single word phrases that invoke command when used with PREFIX i.e help, h
+				// if no prefix is specified the command will not be invokable in text chat
+				// but can still be accessed in code as proxy target
+				if (command.settings.invokes == undefined) { command.settings.invokes = [] };
+				// command name to display in help menu and alerts
+				if (command.settings.name == undefined) { command.settings.name = name };
+				// command description to disply in help menu
+				if (command.settings.description == undefined) { command.settings.description = "" };
+				// command category to display in help menu
+				if (command.settings.category == undefined) { command.settings.category = "other" };
+				// example how to use command i.e <position> [query]
+				// the first invoke will be put in front of usage
+				if (command.settings.usage == undefined) { command.settings.usage = "" };
+				// if command should appear in help menu
+				// it will still be invokable and if no invokes specified then this has no effect
+				if (command.settings.list == undefined) { command.settings.list = true };
 
-            const fileName = file.slice(0, -3).toLowerCase();
-			const command = await import(`./commands/${file}`);
+				this.commands.functions[name] = command[name];
+				this.commands.settings[name] = command.settings;
 
-			console.log(fileName  + " (" + command.settings.aliases + ")");
-			
-			commands.functions[fileName] = command[fileName];
-			commands.settings[fileName] = command.settings;
-			commands[fileName] = fileName;
-
-			// add category to commands.categories if same category was not added yet
-			if (!commands.categories.includes(command.settings.category)) {
-				commands.categories.push(command.settings.category);
-			}
-
-			if (command.settings.aliases) {
-				for (const alias of command.settings.aliases) {
-					commands[alias] = fileName;
+				// add to all categories if category not in categories
+				command.settings.category = command.settings.category.toLowerCase();
+				if (!this.commands.categories.includes(command.settings.category)) {
+					if (command.settings.list && command.settings.invokes.length > 0) {
+						this.commands.categories.push(command.settings.category);
+					}
 				}
+
+				// setup all invokes
+				for (const invoke of command.settings.invokes) {
+					this.commands.invokes[invoke.toLowerCase()] = name;
+				}
+
+				console.log(
+					command.settings.name + " - (" 
+					+ command.settings.invokes.map((invoke: string) => { return invoke }).join(", ") +")"
+				);
 			}
+		});
+
+		// create help menu
+		messageMenager.help = (commandInvoke: string | undefined = undefined) => {
+
+			commandInvoke = commandInvoke?.toLowerCase();
+
+			const infoMain = "**Type: `" + config.prefix + "help [category]` to display commands from a category**\n"
+						   + "**Available categories:\n**";
+
+			const info = "**All commands are displayed with this pattern:\n"
+					   + "`Command Name - (invokes) <required arg> [optional arg]`\n"
+					   + "To see command description type: `" + config.prefix + "help [command invoke]`**\n\n";
+
+			const noCommand = new MessageEmbed()
+								.setColor("#ff0000")
+								.setTitle(`:x:  No command \`${commandInvoke}\``)
+								.setDescription("**Use `help` command to see list of all commands.**")
+			
+			// main menu 
+			if (commandInvoke == undefined) {
+
+				let categoryList = this.commands.categories.map((cat: string) => { return cat; }).join("\n");
+
+				return new MessageEmbed()
+					.setColor("#2ECC71")
+					.setTitle("Help")
+					.setDescription(infoMain + categoryList)
+			}
+
+			// category
+			if (this.commands.categories.includes(commandInvoke)) {
+
+				let commands = "";
+				
+				Object.keys(this.commands.settings).map( (command: string) => {
+					const commandSettings = this.commands.settings[command];
+				
+					if (commandSettings.category == commandInvoke) {
+						if (commandSettings.list && commandSettings.invokes.length > 0) {
+							commands += "`" + commandSettings.name + " (" 
+									 + commandSettings.invokes.map((invoke: string) => { return invoke }).join(", ")
+									 + ") " + commandSettings.usage + "`\n";
+						}
+					}
+				});
+
+				return new MessageEmbed()
+					.setColor("#2ECC71")
+					.setTitle("**" + commandInvoke + " commands list:**")
+					.setDescription(info + "**" + commandInvoke + " commands list:\n**" + commands)
+			}
+
+			// single command
+			else if (commandInvoke in this.commands.invokes) {
+
+				const filename = this.commands.invokes[commandInvoke];
+				const commandSettings = this.commands.settings[filename];
+
+				if (commandSettings.list) {
+					return new MessageEmbed()
+					.setColor("#2ECC71")
+					.setTitle(commandSettings.name)
+					.setDescription(commandSettings.description)
+					.addField(
+						"Example use of this command:",
+						`\`${config.prefix}${commandSettings.invokes[0]}` +
+						`${commandSettings.usage ? (" " + commandSettings.usage) : ""}\``
+					)
+					.addField(
+						"All command invokes",
+						commandSettings.invokes.map((invoke: string) => { return "`" + invoke + "`"}).join(", ")
+					)
+				}
+
+				else return noCommand;
+			}
+
+			// no command
+			else return noCommand;
 		}
-	});
+	}
 
-	messageMenager.commands = commands;
-
-	// add help message
-	messageMenager.help = (commandName: string = "general") => {
+	public async invoke (ID: string, PREFIX: string, wrapper: Wrapper, message: Message) {
 		
-		if (!(commands.categories.includes(commandName))) {
-			if (!(commandName in commands)) {
-				return messageMenager.invalidCommand(commandName);
-			}
+		// extract from message
+		const args = message.content.trim().split(" ");
+		const invoke = args.shift()?.toLowerCase().slice(PREFIX.length);
 
-			const name = commands[commandName];
-
-			return new MessageEmbed()
-				.setColor('#00ff00')
-				.setTitle(name)
-				.setDescription(commands.settings[name].description)
-				.addField("Usage", getUsage(name, commands.settings[name]));
+		// if commandName privided and command exists
+		if (invoke == undefined || invoke.length == 0) return;
+		if (invoke in this.commands.invokes) {
+			// invoke command
+			const name = this.commands.invokes[invoke];
+			await this.commands.functions[name](ID, wrapper, message, args);
 		}
 		else {
-			return new MessageEmbed()
-				.setColor('#0ff000')
-				.setTitle('Commands')
-				.setDescription(
-					"`() - command aliases, <> - required parameter, [] - optional parameter`\n" +
-					`type ${config.prefix}help [command] to show command description\n\n` +
-					`**List of ${commandName} commands:**\n` +
-
-					Object.keys(commands.settings).map(command => {
-						if (!commands.settings[command].list) return "";
-						if (commandName != null) {
-							if (commands.settings[command].category != commandName) {
-								return "";
-							}
-						}
-						return getUsage(command, commands.settings[command]);
-					}).filter((s): s is string => s != "").join('\n')
-
-					+ `\n\n**To see list of other category commands type \`${config.prefix}help [category]\`** \n`
-					+ "**available categories:" + commands.categories.map((category: string) => { return ` \`${category}\``}) + "**"
-				);
+			message.channel.send({embeds: [wrapper.messageMenager.invalidCommand(invoke)]});
 		}
 	}
 
-	loadedCommands = commands;
-}
-
-export const commandMenager = async (ID: string, PREFIX:string, wrapper: Wrapper, message: Message) => {
-
-	const args = message.content.trim().split(' ');
-	const commandName = args.shift()?.toLowerCase().slice(PREFIX.length);
-	if (commandName == undefined) return;
-
-	if (commandName in loadedCommands) {
-		await loadedCommands.functions[loadedCommands[commandName]](ID, wrapper, message, args);
+	public async proxyInvoke (invoke: string, ID: string, wrapper: Wrapper, message: Message, args: string[]) {
+		await this.commands.functions[invoke](ID, wrapper, message, args);
 	}
-	else { // no such command
-		message.channel.send({embeds: [wrapper.messageMenager.invalidCommand(commandName)]});
-	}
+
 }

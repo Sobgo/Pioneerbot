@@ -8,16 +8,16 @@ datasource db {
 }
 
 model Guild {
-  id            String @id
+  id                  String @id
   default_playlist_id Int?
-  
+
   playlist Playlist[]
 }
 
 model Song {
-  ytid   String @id
-  title  String
-  author String
+  ytid     String @id
+  title    String
+  author   String
   duration Int
 
   playlists Content[]
@@ -30,13 +30,13 @@ model Playlist {
 
   songs Content[]
 
-  guild Guild     @relation(fields: [guild_id], references: [id], onDelete: Cascade)
+  guild Guild @relation(fields: [guild_id], references: [id], onDelete: Cascade)
 }
 
 model Content {
-  id          Int    @id @default(autoincrement())
-  playlist_id Int
-  song_ytid   String
+  id            Int      @id @default(autoincrement())
+  playlist_id   Int
+  song_ytid     String
   playtime_date DateTime @default(now())
 
   song     Song     @relation(fields: [song_ytid], references: [ytid], onDelete: Cascade)

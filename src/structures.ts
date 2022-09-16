@@ -8,7 +8,7 @@ import {
 	AudioPlayer, VoiceConnection, AudioPlayerStatus, createAudioResource, AudioPlayerState, createAudioPlayer, 
 	joinVoiceChannel, entersState, VoiceConnectionStatus
 } from "@discordjs/voice";
-import { secToTimestamp, ytsr, validateURL, getVideoId } from "./utils";
+import { secToTimestamp, ytsr, validateURL, getVideoId, shuffle } from "./utils";
 
 import { messageMenager } from "./messageMenager";
 import { commandMenager } from './commandMenager';
@@ -116,7 +116,9 @@ export class Queue {
 
 		// triggers when song ends
 		this.player.on(AudioPlayerStatus.Idle, async (oldState: AudioPlayerState, newState: AudioPlayerState) => {
+			
 			console.log(newState.status);
+			
 			if (!this.loop) this.pop();
 			this.playResource();
 		});
@@ -129,8 +131,15 @@ export class Queue {
 			const song = this.front();
 			if(song == undefined) throw "undefined song";
 
+			// !!!
 			this.textChannel.send({ embeds: [messageMenager.play(song)] });
 		});
+	}
+
+	public updateVoice (voiceChannel: VoiceBasedChannel) {
+		this.voiceChannelId = voiceChannel.id;
+		this.voiceChannelName = voiceChannel.toString();
+		this.player.stop();
 	}
 	
 	// leave voice channel if no activity and no other users
@@ -170,7 +179,8 @@ export class Queue {
 	}
 
 	/**
-	 * Starts streaming first song form the queue to the voice channel, if other stream is being played it will be overridden.
+	 * Starts streaming first song form the queue to the voice channel
+	 * if other stream is being played it will be overridden.
 	 */
 	public playResource () {
 		const song = this.front();
@@ -257,6 +267,12 @@ export class Queue {
 		return this.songs[position];
 	}
 
+	public shuffle () {
+		if (this.songs.length < 2) return;
+		const first = this.songs.slice(0, 1);
+		this.songs = first.concat(shuffle(this.songs.slice(1)));
+	}
+
 	/**
 	 * Returns a string representation of the Queue.
 	 * Note: first song is not returned since its currently playing song.
@@ -280,7 +296,7 @@ export class Wrapper {
 
 	private queues: Record<string, Queue> = {};
 	public client: Client;
-	public commandMeneger = commandMenager;
+	public commandMeneger = new commandMenager();
 	public messageMenager = messageMenager;
 	public databaseMenager = new databaseMenager();
 	public prefix: string;
@@ -341,12 +357,10 @@ export class Wrapper {
 		// check if the user is in a voice channel
 		const voice = message.member?.voice;
 		if (voice == undefined || voice.channel == null || voice.channelId == null ) {
-			message.channel.send({embeds: [this.messageMenager.noChannel()]});
+			message.channel.send({embeds: [this.messageMenager.noChannelUser()]});
 			return null;
 		}
 		
-		const player = createAudioPlayer();
-	
 		const connection = joinVoiceChannel({
 			channelId: voice.channelId,
 			guildId: ID,
@@ -354,10 +368,18 @@ export class Wrapper {
 			selfDeaf: false
 		});
 	
-		if (this.get(ID) == null) {
+		const queue = this.get(ID);
+
+		if (queue == null) {
+			const player = createAudioPlayer();
 			await this.add(ID, new Queue(ID, voice.channel, message.channel, connection, player));
+			connection.subscribe(player);
 		}
-	
+		else {
+			queue.updateVoice(voice.channel);
+			connection.subscribe(queue.player);
+		}
+
 		try {
 			await entersState(connection, VoiceConnectionStatus.Ready, 10e3);
 		}
@@ -366,12 +388,12 @@ export class Wrapper {
 			message.channel.send("couldn't connect to channel");
 		}
 	
-		connection.subscribe(player);
 		return this.get(ID);
 	}
 
 	/**
-	 * Check if queue exists and if user and bot are in the same voice channel. If toJoin is true then if queue doesn't exist it will be created.
+	 * Check if queue exists and if user and bot are in the same voice channel.
+	 * If toJoin is true then if queue doesn't exist it will be created.
 	 * @param {string} ID - Id of a guild
 	 * @param {Message} message - Message from which the command was called
 	 * @param {boolean} toJoin - If true then if queue doesn't exist it will be created
@@ -385,12 +407,12 @@ export class Wrapper {
 		}
 	
 		if (!queue?.voiceChannelId) {
-			message.channel.send({embeds: [this.messageMenager.noBotChannel()]});
+			message.channel.send({embeds: [this.messageMenager.noChannelBot()]});
 			return null;
 		}
 	
 		if (memberVoice == undefined || memberVoice.channelId == null || memberVoice.channelId != queue?.voiceChannelId) {
-			message.channel.send({embeds: [this.messageMenager.noChannel(queue?.voiceChannelName)]});
+			message.channel.send({embeds: [this.messageMenager.noChannelUser(queue?.voiceChannelName)]});
 			return null;
 		}
 		return queue;

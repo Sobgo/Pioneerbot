@@ -4,8 +4,10 @@ import { Wrapper } from "../structures";
 import { searchMany } from "../utils";
 
 export const settings = {
-	aliases : ["pt"],
-	description : "Adds a song to the top of the queue and if queue was empty plays added song.",
+	name : "Play top",
+	invokes : ["playtop", "pt"],
+	description : "Searches song with the given `[query]` and adds the first result to the top of the queue"
+				+ "if no `[query]` is specified it will instead show currently playing song if any.",
 	usage : "[query]",
 	category : "general",
 	list : true
@@ -36,6 +38,6 @@ export const playtop = async (ID: string, wrapper: Wrapper, message: Message, ar
 		}
 	}
 	else {
-		message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments("playtop", settings.aliases, settings.usage)] });
+		message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments(settings)] });
 	}
 }

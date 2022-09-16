@@ -2,36 +2,38 @@
 import { Interaction, Message } from 'discord.js';
 import sqlite3 from 'sqlite3';
 import { createInterface } from 'readline';
-import { writeFile } from 'fs';
+import { writeFile, statSync } from 'fs';
 import { Wrapper } from './structures';
-import { importCommands } from './commandMenager';
 import config from '../config.json';
 
 const wrapper = new Wrapper(config.prefix);
 
 new sqlite3.Database("./database.db", sqlite3.OPEN_READWRITE, (err) => {
 	if (err) {
-		console.warn("You need to build a database from schema. Type: npx prisma db push");
 		new sqlite3.Database("./database.db");
 	}
-	else {
-		if (config.token.length < 1) {
-			const rli = createInterface({
-				input: process.stdin,
-				output: process.stdout
-			});
+
+	if (statSync("./database.db").size == 0) {
+		console.warn("You need to build a database from schema. Type: npx prisma db push");
+		return;
+	}
+
+	if (config.token.length < 1) {
+		const rli = createInterface({
+			input: process.stdin,
+			output: process.stdout
+		});
 		
-			rli.question("Please enter your discord api token: ", (answer) => {
-				wrapper.client.login(answer);
-				config.token = answer;
-				rli.close();
-				importCommands();
-			});
-		}
-		else {
-			wrapper.client.login(config.token);
-			importCommands();
-		}
+		rli.question("Please enter your discord api token: ", (answer) => {
+			try { wrapper.client.login(answer); } catch { console.error("Failed to login"); return; }
+			config.token = answer;
+			rli.close();
+			wrapper.commandMeneger.importCommands();
+		});
+	}
+	else {
+		try { wrapper.client.login(config.token); } catch { console.error("Failed to login"); return; }
+		wrapper.commandMeneger.importCommands();
 	}
 });
 
@@ -41,7 +43,7 @@ wrapper.client.on('ready', async () => {
 		writeFile('./config.json', JSON.stringify(config, null, 2), (err) => {
 			if (err) console.warn(err);
 		});
-		await dbCleenup();
+		await wrapper.databaseMenager.dbCleenup();
 		console.log( `${wrapper.client.user.username} successfully logged in`);
 	}
 });
@@ -50,26 +52,12 @@ wrapper.client.on('ready', async () => {
 wrapper.client.on('messageCreate', async (message: Message) => {
 	if (!message.guild) return;
 	if (message.author.bot) return;
-
-	const ID = message.guild.id;
 	if (!message.content.startsWith(wrapper.prefix)) return;
-	wrapper.commandMeneger(ID, wrapper.prefix, wrapper, message);
+
+	wrapper.commandMeneger.invoke(message.guild.id, wrapper.prefix, wrapper, message);
 });
 
 // TODO: discord / commands support
 wrapper.client.on('interactionCreate', async (interaction: Interaction) => {
 	if (!interaction.isCommand() || !interaction.guild) return;
 });
-
-// quick and dirty
-const dbCleenup = async () => {
-	const db = wrapper.databaseMenager;
-	// find songs that are not in any playlist
-	const songs = await db.getAllSongs();
-	for (const song of songs) {
-		if (!(await db.checkInPlaylist(song.ytid))) {
-			db.removeSong(song.ytid);
-			console.log(`Removed song ${song.ytid} -> ${song.title}`);
-		}
-	}
-}

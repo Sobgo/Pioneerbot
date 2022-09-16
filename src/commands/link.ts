@@ -4,8 +4,10 @@ import { Wrapper } from "../structures"
 import { searchMany } from '../utils';
 
 export const settings = {
-	aliases : [],
-	description : "Get a link to the song, if no `[query]` is specified previous query will be used, `<position>` is song's position on youtube search result page.",
+	name : "Link",
+	invokes : ["link"],
+	description : "Provides a link to the song appearing in `<position>` when serached with `[query]`, "
+				+ "if no `[query]` is specified it will try to use previous cached query.",
 	usage : "<position> [query]",
 	category : "general",
 	list : true
@@ -17,13 +19,15 @@ export const link = async (ID: string, wrapper: Wrapper, message: Message, args:
 	const query = args.slice(1).map((element) => { return element }).join(' ');
 	let result;
 
+	console.log(query);
+
 	if (isNaN(position) || position < 0) {
-		message.channel.send({embeds: [wrapper.messageMenager.invalidArguments("link", undefined, settings.usage)]});
+		message.channel.send({embeds: [wrapper.messageMenager.invalidArguments(settings)]});
 		return;
 	}
 
 	if (query.length > 0) {
-		result = await searchMany(message, query);
+		result = await searchMany(message, query, 10);
 		if (queue) queue.cache = result;
 	}
 	else {

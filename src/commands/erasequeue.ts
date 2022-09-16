@@ -4,8 +4,9 @@ import { Wrapper } from "../structures";
 import { getVideoId } from "../utils";
 
 export const settings = {
-	aliases : ["eq"],
-	description : "removes song with given position form queue and permanently removes it from guild history",
+	name : "Erase from queue",
+	invokes : ["erasequeue", "eq"],
+	description : "Removes song with specified queue position both from queue and guild history.",
 	usage : "<position>",
 	category : "tracking",
 	list : true
@@ -20,7 +21,7 @@ export const erasequeue = async (ID: string, wrapper: Wrapper, message: Message,
 			const position = parseInt(args[0]);
 
 			if (isNaN(position)) {
-				message.channel.send({embeds: [wrapper.messageMenager.invalidArguments("erasequeue", settings.aliases, settings.usage)]});
+				message.channel.send({embeds: [wrapper.messageMenager.invalidArguments(settings)]});
 				return;
 			}
 				
@@ -39,10 +40,10 @@ export const erasequeue = async (ID: string, wrapper: Wrapper, message: Message,
 				const ytid = getVideoId(song.url);
 				db.removeFromPlaylist(playlistId, ytid);
 				queue.remove(position);
-				message.channel.send("removed \`" + ytid  + "\` from \`" + playlistId + "\`");
+				message.channel.send({embeds: [wrapper.messageMenager.erased(song)]});
 			}
 			else {
-				message.channel.send({embeds: [wrapper.messageMenager.noBotChannel()]});
+				message.channel.send({embeds: [wrapper.messageMenager.noChannelBot()]});
 			}
 		}
 	}
