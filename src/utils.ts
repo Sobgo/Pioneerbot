@@ -8,7 +8,7 @@ import { Song as PrismaSong, Playlist } from "@prisma/client";
 
 export const getVideoId = (url: string) => {
 	const validURLregex = /(?:https?:\/\/)?((?:www|m|music|gaming)?(?:\.))?youtu?(\.)?be?(\.com)?\/?.?(?:watch|embed|v|shorts)?(?:.*v=|v\/|\/)([a-zA-Z0-9-_]{11})$/;
-	const validIDRegex = /^[a-zA-Z0-9-_]{11}$/;
+	const validIDregex = /^[a-zA-Z0-9-_]{11}$/;
 
 	const parsed = new URL(url);
 
@@ -35,7 +35,7 @@ export const getVideoId = (url: string) => {
 		else id = path[2];
 	}
 
-	if (!validIDRegex.test(id)) {
+	if (!validIDregex.test(id)) {
 		throw Error('Invalid YouTube URL');
 	}
 

@@ -16,12 +16,12 @@ import { databaseMenager } from './databaseMenager';
 
 type MessageChannel = TextChannel | DMChannel | NewsChannel | ThreadChannel | PartialDMChannel | VoiceChannel;
 
-const TEN_MINUTES = 1000*60*10;
+const FIVE_MINUTES = 1000*60*5;
 
 const FLAGS = {
 	output: '-', // output to stdout
 	quiet: true, // quiet mode
-	format: 'bestaudio[ext=webm+acodec=opus+asr=48000]/bestaudio', // output format
+	format: 'bestaudio', // output format
 	limitRate: '100K', // max download rate in bytes
 	bufferSize: '16K', // buffer size in bytes
 }
@@ -112,7 +112,7 @@ export class Queue {
 
 		this.wrapper = null;
 
-		this.timer = setInterval(this.checkActivity, TEN_MINUTES, this);
+		this.timer = setInterval(this.checkActivity, FIVE_MINUTES, this);
 
 		// triggers when song ends
 		this.player.on(AudioPlayerStatus.Idle, async (oldState: AudioPlayerState, newState: AudioPlayerState) => {
@@ -142,21 +142,28 @@ export class Queue {
 		this.player.stop();
 	}
 	
-	// leave voice channel if no activity and no other users
+	// leave voice channel if no other users
 	private async checkActivity (queue: Queue) {
-		if (queue.wrapper) {
+		const client = queue.wrapper?.client;
+		const id = queue.voiceChannelId;
 
-			let guild = queue.wrapper.client.guilds.cache
-			? queue.wrapper.client.guilds.cache.get(queue.guildId)
-			: await (queue.wrapper.client.guilds.fetch(queue.guildId));
+		// check how many users in voice channel
+		let count = 0;
 
-			if (guild) {
-				// TODO: check if users are not bots
-				let usersNumber = guild.me?.voice.channel?.members.size;
-				if (usersNumber && usersNumber < 2) {
-					queue.wrapper.remove(queue.guildId);
-				}
-			}
+		const channel = client?.channels.cache.get(id) ?
+						client?.channels.cache.get(id) :
+						await client?.channels.fetch(id);
+		
+		if (channel?.isVoice()) {
+			channel.members.map((member) => { 
+				if (!member.user.bot) count += 1;
+			});
+		}
+
+		// if no users leave voice chat
+		if (count == 0) {
+			queue.wrapper?.remove(queue.guildId);
+			console.log("left " + queue.voiceChannelId);
 		}
 	}
 
@@ -296,7 +303,7 @@ export class Wrapper {
 
 	private queues: Record<string, Queue> = {};
 	public client: Client;
-	public commandMeneger = new commandMenager();
+	public commandMenager = new commandMenager();
 	public messageMenager = messageMenager;
 	public databaseMenager = new databaseMenager();
 	public prefix: string;

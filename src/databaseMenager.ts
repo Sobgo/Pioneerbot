@@ -199,7 +199,7 @@ export class databaseMenager {
 
 			return new Song(
 				URL + content.song_ytid,
-				undefined,
+				"random",
 				song.title,
 				song.author,
 				song.duration.toString()
@@ -225,7 +225,7 @@ export class databaseMenager {
 
 			return new Song(
 				URL + content.song_ytid,
-				undefined,
+				"oldest",
 				song.title,
 				song.author,
 				song.duration.toString()

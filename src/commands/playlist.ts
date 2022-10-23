@@ -59,17 +59,17 @@ export const playlist = async (ID: string, wrapper: Wrapper, message: Message, a
 
 		switch (command) {
 			case "add": case "a": {
-				wrapper.commandMeneger.proxyInvoke("playlistadd", ID, wrapper, message, args);
+				wrapper.commandMenager.proxyInvoke("playlistadd", ID, wrapper, message, args);
 				break;
 			}
 
 			case "erase": case "e": {
-				wrapper.commandMeneger.proxyInvoke("playlisterase", ID, wrapper, message, args);
+				wrapper.commandMenager.proxyInvoke("playlisterase", ID, wrapper, message, args);
 				break;
 			}
 
 			case "play": case "p": {
-				wrapper.commandMeneger.proxyInvoke("playlistplay", ID, wrapper, message, args);
+				wrapper.commandMenager.proxyInvoke("playlistplay", ID, wrapper, message, args);
 				break;
 			}
 			default : {

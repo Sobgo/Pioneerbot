@@ -10,9 +10,14 @@ const wrapper = new Wrapper(config.prefix);
 
 new sqlite3.Database("./database.db", sqlite3.OPEN_READWRITE, (err) => {
 	if (err) {
-		new sqlite3.Database("./database.db");
+		new sqlite3.Database("./database.db", () => {
+			init();
+		});
 	}
+	else init();
+});
 
+const init = () => {
 	if (statSync("./database.db").size == 0) {
 		console.warn("You need to build a database from schema. Type: npx prisma db push");
 		return;
@@ -28,14 +33,14 @@ new sqlite3.Database("./database.db", sqlite3.OPEN_READWRITE, (err) => {
 			try { wrapper.client.login(answer); } catch { console.error("Failed to login"); return; }
 			config.token = answer;
 			rli.close();
-			wrapper.commandMeneger.importCommands();
+			wrapper.commandMenager.importCommands();
 		});
 	}
 	else {
 		try { wrapper.client.login(config.token); } catch { console.error("Failed to login"); return; }
-		wrapper.commandMeneger.importCommands();
+		wrapper.commandMenager.importCommands();
 	}
-});
+};
 
 wrapper.client.on('ready', async () => {
 	// if loged in successfully then save config
@@ -54,7 +59,7 @@ wrapper.client.on('messageCreate', async (message: Message) => {
 	if (message.author.bot) return;
 	if (!message.content.startsWith(wrapper.prefix)) return;
 
-	wrapper.commandMeneger.invoke(message.guild.id, wrapper.prefix, wrapper, message);
+	wrapper.commandMenager.invoke(message.guild.id, wrapper.prefix, wrapper, message);
 });
 
 // TODO: discord / commands support
