@@ -1,4 +1,11 @@
 {
   "token": "",
-  "prefix": "!"
+  "prefix": "!",
+  "ytdlFlags": {
+    "output": "-",
+    "quiet": true,
+    "format": "bestaudio",
+    "limitRate": "100K",
+    "bufferSize": "16K"
+  }
 }
