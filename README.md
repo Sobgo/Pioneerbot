@@ -50,7 +50,7 @@ However I don't see any reason to do that and because of that I don't provide an
 ## Custom commands
 
 You can add your own commands by creating files in `src/commands` directory.  
-Inside each command file should be en exported function with the same name as filename taking 4 arguments:  
+Inside each command file should be an exported function with the same name as filename taking 4 arguments:  
 `ID: string, queues: Wrapper, message: Message, args: string[]`  
 
 Additionally every command should also export a settings object. It is used to set up command invokes and to display command properly in help menu.
