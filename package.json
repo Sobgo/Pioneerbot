@@ -1,30 +1,33 @@
 {
   "name": "pioneer",
-  "version": "2.3.1",
-  "description": "Discord music bot using discord.js v13",
+  "version": "2.4.0rc1",
+  "description": "Discord music bot using discord.js v14",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "ts-node src/index.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "ts-node -r tsconfig-paths/register  src/index.ts",
+    "dev": "ts-node -r tsconfig-paths/register  src/index.ts",
+    "migrate": "npx prisma-merge --baseFile \"prisma/base.prisma\" --schemaFilePatterns \"prisma/**/*.prisma\" --outputFile \"prisma/schema.prisma\" && npx prisma migrate dev"
   },
   "author": "Sobgo",
   "license": "MIT",
   "dependencies": {
-    "@discordjs/opus": "^0.8.0",
-    "@discordjs/voice": "^0.10.0",
-    "@prisma/client": "^4.0.0",
+    "@discordjs/opus": "^0.9.0",
+    "@discordjs/voice": "^0.14.0",
+    "@prisma/client": "^4.9.0",
     "cheerio": "^1.0.0-rc.12",
-    "discord.js": "^13.8.1",
-    "prisma": "^4.0.0",
-    "sqlite3": "^5.0.8",
+    "discord.js": "^14.7.1",
+    "prisma": "^4.9.0",
+    "sqlite3": "^5.1.4",
     "tweetnacl": "^1.0.3",
-    "youtube-dl-exec": "^2.0.12"
+    "youtube-dl-exec": "^2.2.3"
   },
   "devDependencies": {
-    "@types/node": "^18.0.3",
+    "@types/node": "^18.11.18",
+    "@types/node-fetch": "^2.6.2",
     "@types/sqlite3": "^3.1.8",
-    "ts-node": "^10.8.2",
-    "tslib": "^2.4.0",
-    "typescript": "^4.7.4"
+    "ts-node": "^10.9.1",
+    "tsconfig-paths": "^4.1.2",
+    "tslib": "^2.5.0",
+    "typescript": "^4.9.5"
   }
 }
