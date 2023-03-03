@@ -6,6 +6,6 @@
     "quiet": true,
     "format": "bestaudio",
     "limitRate": "100K",
-    "bufferSize": "16K"
+    "bufferSize": "64K"
   }
 }

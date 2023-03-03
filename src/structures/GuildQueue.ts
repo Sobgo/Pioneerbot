@@ -88,6 +88,20 @@ export class GuildQueue extends Queue {
 			selfDeaf: false
 		});
 
+		// hotfix for https://github.com/discordjs/discord.js/issues/9185
+		connection.on('stateChange', (oldState, newState) => {
+			const oldNetworking = Reflect.get(oldState, 'networking');
+			const newNetworking = Reflect.get(newState, 'networking');
+		  
+			const networkStateChangeHandler = (_oldNetworkState: any, newNetworkState: any) => {
+			  const newUdp = Reflect.get(newNetworkState, 'udp');
+			  clearInterval(newUdp?.keepAliveInterval);
+			}
+		  
+			oldNetworking?.off('stateChange', networkStateChangeHandler);
+			newNetworking?.on('stateChange', networkStateChangeHandler);
+		});
+
 		this.player.stop();
 
 		try {

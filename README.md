@@ -14,8 +14,8 @@ Pioneer is intended for private usage (self hosting) to avoid issues with copyri
 - Create your own playlists and add songs to them
 - Works with multiple servers at once!
 
-For list of all available commands you can type `!help` in discord chat  
-You can change "!" prefix in `config.json` file
+For list of all available commands you can type `!help` in discord chat.  
+You can change "!" prefix in `config.json` file.
 
 ## How to use
 
@@ -26,7 +26,7 @@ Python 3 (youtube-dl-exec dependency) - <https://www.python.org>
 You can check if you have them installed by typing `node -v`, `ffmpeg -version` and `python3 -V` in terminal.  
 if you installed Python and `python3` command doesn't work set symbolic link with: `ln -s python python3`
 
-Then clone this repository and install it with dev dependencies using: `npm i -D`
+Then clone this repository and install it with dev dependencies using: `npm i -D`  
 Note: You might want to install typescript globally for easy access in command line with: `npm i -g typescript ts-node tslib`
 
 To run Pioneer you will need to provide your own discord API token which you can get by logging in to [discord developer portal](https://discord.com/developers) and creating new application.
@@ -42,10 +42,14 @@ You will also be prompted to build database from schema with `npm run migrate` c
 
 After that your bot should be ready to use. You can check all available commands by typing `!help` in discord chat.
 
-## Building
+## Configuration
 
-You can technically build Pioneer from typescript into javascript with: `npx tsc --outDir <yourPathToBuild>` so it won't require dev dependencies to run.
-However I don't see any reason to do that and because of that I don't provide any build scripts or prebuilt releases.
+Pioneer uses [yt-dlp](https://github.com/yt-dlp/yt-dlp) to download music streams. You can change download options in `config.json` file.
+For example you can change quality of downloaded audio or set maximum download speed.
+For list of all options check [yt-dlp documentation](https://github.com/yt-dlp/yt-dlp#usage-and-options).  
+**Note: Flags inside `config.json` should be written in `camelCase` not `kebab-case` like in documentation above.**
+
+You can also change bot prefix in `config.json` file.
 
 ## Custom commands
 
@@ -58,17 +62,24 @@ Additionally every command should also export a settings object. It is used to s
 The settings object looks like this:
 
 ```js
-settings {
- name : "Help", // command name
- invokes : ["help", "h"], // single word phrases that invoke command when used with prefix
- description : "Shows the help menu.", // command description
- usage : "[command]", // describes how to use the command (what are its arguments)
- category : "general", // used for grouping commands
- list : true // whether to show this command in help menu or not
+export const settings: CommandSettings = {
+    name: "Play", // name of the command displayed in help menu
+    invokes: ["play", "p"], // single words that invoke command when used with prefix
+    description: "Searches song with the given `[query]` and adds the first result to the back of the queue"
+        + "if no `[query]` is specified it will instead show currently playing song if any.",
+    // description of the command displayed in help menu
+    usage: "[query]", // descirption of command arguments
+    category: "general", // used for grouping commands
+    list: true // whether to show this command in help menu or not
 }
 ```
 
 For more exhaustive description you can check `commands/example.ts`.
+
+## Building
+
+You can technically build Pioneer from typescript into javascript with: `npx tsc --outDir <yourPathToBuild>` so it won't require dev dependencies to run.
+However I don't see any reason to do that and because of that I don't provide any build scripts or prebuilt releases.
 
 ## Bug reports and contributing
 
