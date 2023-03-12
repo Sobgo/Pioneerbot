@@ -36,6 +36,7 @@ export class GuildQueue extends Queue {
 
 	public cachedResult: Song[] = [];
 
+	public quiet: boolean = false;
 	public loop: boolean = false;
 	public tracking: boolean = false;
 
@@ -73,7 +74,7 @@ export class GuildQueue extends Queue {
 
 			const song = this.current;
 			if (song == undefined) throw "undefined song";
-			this.textChannel.send({ embeds: [this.wrapper.messageMenager.play(song)] });
+			if (!this.quiet) this.textChannel.send({ embeds: [this.wrapper.messageMenager.play(song)] });
 		});
 	}
 
@@ -89,17 +90,14 @@ export class GuildQueue extends Queue {
 		});
 
 		// hotfix for https://github.com/discordjs/discord.js/issues/9185
+		const networkStateChangeHandler = (_oldNetworkState: any, newNetworkState: any) => {
+			const newUdp = Reflect.get(newNetworkState, 'udp');
+			clearInterval(newUdp?.keepAliveInterval);
+		}
+
 		connection.on('stateChange', (oldState, newState) => {
-			const oldNetworking = Reflect.get(oldState, 'networking');
-			const newNetworking = Reflect.get(newState, 'networking');
-		  
-			const networkStateChangeHandler = (_oldNetworkState: any, newNetworkState: any) => {
-			  const newUdp = Reflect.get(newNetworkState, 'udp');
-			  clearInterval(newUdp?.keepAliveInterval);
-			}
-		  
-			oldNetworking?.off('stateChange', networkStateChangeHandler);
-			newNetworking?.on('stateChange', networkStateChangeHandler);
+			Reflect.get(oldState, 'networking')?.off('stateChange', networkStateChangeHandler);
+			Reflect.get(newState, 'networking')?.on('stateChange', networkStateChangeHandler);
 		});
 
 		this.player.stop();

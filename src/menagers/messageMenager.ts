@@ -20,6 +20,12 @@ export class messageMenager {
 			.setTitle(loop ? '**:repeat:  Loop Enabled**' : '**:repeat:  Loop Disabled**')
 	}
 
+	public static quiet (quiet: boolean) {
+		return new EmbedBuilder()
+			.setColor(PURPLE)
+			.setTitle("**:shushing_face:  Quiet Mode " + (quiet ? "Enabled" : "Disabled") + ".**")
+	}
+
 	public static play(song?: Song | null) {
 		if (song) {
 			return new EmbedBuilder()
