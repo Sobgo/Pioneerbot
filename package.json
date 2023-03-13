@@ -17,7 +17,7 @@
     "cheerio": "^1.0.0-rc.12",
     "discord.js": "^14.7.1",
     "prisma": "^4.9.0",
-    "sqlite3": "^5.1.4",
+    "sqlite3": "^5.1.5",
     "tweetnacl": "^1.0.3",
     "youtube-dl-exec": "^2.2.3"
   },
