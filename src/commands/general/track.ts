@@ -17,7 +17,7 @@ export const settings: CommandSettings = {
 }
 
 export const track = async (guildId: string, wrapper: Wrapper, message: Message, args: string[]) => {
-	const db = wrapper.databaseMenager;
+	const db = wrapper.databaseManager;
 	const queue = wrapper.get(guildId);
 
 	const confirmation = args[0] ? args[0] : "";
@@ -25,18 +25,18 @@ export const track = async (guildId: string, wrapper: Wrapper, message: Message,
 
 	if (confirmation == "") {
 		if (isTracked) {
-			message.channel.send({ embeds: [wrapper.messageMenager.trackingDisabled()] });
+			message.channel.send({ embeds: [wrapper.messageManager.trackingDisabled()] });
 		} else {
-			message.channel.send({ embeds: [wrapper.messageMenager.trackingEnabled()] });
+			message.channel.send({ embeds: [wrapper.messageManager.trackingEnabled()] });
 		}
 	} else if (confirmation == "enable" && !isTracked) {
 		await db.addGuild(guildId);
 		if (queue) queue.tracking = true;
-		message.channel.send({ embeds: [wrapper.messageMenager.trackingEnabled(true)] });
+		message.channel.send({ embeds: [wrapper.messageManager.trackingEnabled(true)] });
 	} else if (confirmation == "disable" && isTracked) {
 		await db.removeGuild(guildId);
 		if (queue) queue.tracking = false;
-		message.channel.send({ embeds: [wrapper.messageMenager.trackingDisabled(true)] });
+		message.channel.send({ embeds: [wrapper.messageManager.trackingDisabled(true)] });
 	}
 	// TODO: message if already tracked
 }

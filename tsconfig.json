@@ -30,7 +30,7 @@
     "baseUrl": ".",                                      /* Specify the base directory to resolve non-relative module names. */
     "paths": {                                           /* Specify a set of entries that re-map imports to additional lookup locations. */
         "@/structures/*": ["src/structures/*"],
-        "@/menagers/*": ["src/menagers/*"],
+        "@/managers/*": ["src/managers/*"],
         "@/utils": ["src/utils"],
         "@/scrapper": ["src/scrapper/ytsr"],
         "config": ["config.json"]

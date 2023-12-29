@@ -15,10 +15,10 @@ export const settings: CommandSettings = {
 export const quiet = async (guildId: string, wrapper: Wrapper, message: Message, _args: string[]) => {
 	const queue = await wrapper.checkQueue(guildId, message);
 	if (!queue) {
-		message.channel.send({ embeds: [wrapper.messageMenager.noChannelBot()] });
+		message.channel.send({ embeds: [wrapper.messageManager.noChannelBot()] });
 		return;
 	}
 
 	queue.quiet = !queue.quiet;
-	message.channel.send({ embeds: [wrapper.messageMenager.quiet(queue.quiet)] });
+	message.channel.send({ embeds: [wrapper.messageManager.quiet(queue.quiet)] });
 }

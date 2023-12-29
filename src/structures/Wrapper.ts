@@ -2,19 +2,20 @@
 import { Client, GatewayIntentBits, Message } from "discord.js";
 
 import { GuildQueue } from "@/structures/GuildQueue";
-import { messageMenager } from "@/menagers/messageMenager";
-import { commandMenager } from "@/menagers/commandMenager";
-import { databaseMenager } from "@/menagers/databaseMenager";
+import { messageManager } from "src/managers/messageManager";
+import { commandManager } from "src/managers/commandManager";
+import { databaseManager } from "src/managers/databaseManager";
 
 export class Wrapper {
 	public client: Client;
 	public prefix: string;
+	public verbose: boolean = false;
 
 	private queues: Record<string, GuildQueue> = {};
 
-	public messageMenager = messageMenager;
-	public commandMenager = new commandMenager();
-	public databaseMenager = new databaseMenager();
+	public messageManager = messageManager;
+	public commandManager = new commandManager();
+	public databaseManager = new databaseManager();
 
 	constructor(prefix: string) {
 		this.client = new Client({
@@ -39,7 +40,7 @@ export class Wrapper {
 	 */
 	public async add(id: string, element: GuildQueue) {
 		element.wrapper = this;
-		element.tracking = await this.databaseMenager.checkGuild(id);
+		element.tracking = await this.databaseManager.checkGuild(id);
 		this.queues[id] = element;
 	}
 
@@ -52,9 +53,9 @@ export class Wrapper {
 		const connection = this.queues[id].connection;
 		if (connection) connection.destroy();
 
-		console.log(`Removed queue for guild ${id}`);
+		if (this.verbose) console.log(`Removed queue for Guild: ${id}`);
 
-		clearInterval(this.queues[id].timer);
+		clearInterval(this.queues[id].inactivityTimer);
 		delete this.queues[id];
 		return true;
 	}
@@ -80,7 +81,7 @@ export class Wrapper {
 		let memberVoice = message.member?.voice;
 
 		if (memberVoice == undefined || !memberVoice.channel) {
-			message.channel.send({ embeds: [this.messageMenager.noChannelUser()] });
+			message.channel.send({ embeds: [this.messageManager.noChannelUser()] });
 			return null;
 		}
 
@@ -93,12 +94,12 @@ export class Wrapper {
 		if (!queue) return null;
 
 		if (!queue.voiceChannelId) {
-			message.channel.send({ embeds: [this.messageMenager.noChannelBot()] });
+			message.channel.send({ embeds: [this.messageManager.noChannelBot()] });
 			return null;
 		}
 
 		if (memberVoice == undefined || memberVoice.channelId == null || memberVoice.channelId != queue?.voiceChannelId) {
-			message.channel.send({ embeds: [this.messageMenager.noChannelUser(queue.voiceChannelName ? queue.voiceChannelName : undefined)] });
+			message.channel.send({ embeds: [this.messageManager.noChannelUser(queue.voiceChannelName ? queue.voiceChannelName : undefined)] });
 			return null;
 		}
 		return queue;

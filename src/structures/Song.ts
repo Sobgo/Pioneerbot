@@ -9,14 +9,14 @@ export class Song {
 	public title: string;
 	public author: string;
 	public duration: string;
-	public username: string;
+	public requester: string;
 
-	public constructor(url: string, title: string, author: string, duration: string, username: string) {
+	public constructor(url: string, title: string, author: string, duration: string, requester: string) {
 		this.url = url;
 		this.title = title;
 		this.author = author;
 		this.duration = duration;
-		this.username = username;
+		this.requester = requester;
 	}
 
 	/**

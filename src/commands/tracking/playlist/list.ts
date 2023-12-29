@@ -13,15 +13,15 @@ export const settings: CommandSettings = {
 }
 
 export const list = async (guildId: string, wrapper: Wrapper, message: Message, _args: string[]) => {
-	const playlists = await wrapper.databaseMenager.getAllGuildPlaylists(guildId);
-	const guild = await wrapper.databaseMenager.getGuild(guildId);
+	const playlists = await wrapper.databaseManager.getAllGuildPlaylists(guildId);
+	const guild = await wrapper.databaseManager.getGuild(guildId);
 
 	if (guild) {
 		const deaultPlaylistId = guild.default_playlist_id;
 		const filtered = playlists.filter((playlist) => { return playlist.id != deaultPlaylistId });
-		message.channel.send({ embeds: [wrapper.messageMenager.playlists(filtered)] });
+		message.channel.send({ embeds: [wrapper.messageManager.playlists(filtered)] });
 	}
 	else {
-		message.channel.send({ embeds: [wrapper.messageMenager.trackingRequired()] });
+		message.channel.send({ embeds: [wrapper.messageManager.trackingRequired()] });
 	}
 }

@@ -63,15 +63,15 @@ export const example = async (guildId: string, wrapper: Wrapper, message: Messag
 
 	if (position < 1) {
 		// position must be greater than 0
-		// here we are using a message from messageMenager which is a collection of predefined messages
-		message.channel.send({ embeds: [wrapper.messageMenager.outOfScope("position")] });
+		// here we are using a message from messageManager which is a collection of predefined messages
+		message.channel.send({ embeds: [wrapper.messageManager.outOfScope("position")] });
 		return;
 	}
 
 	// second argument is optional, if it is not given we will use "front" as default
 	const side = args[1] || "front";
 	if (side !== "front" && side !== "back") {
-		message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments(settings)] });
+		message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
 	}
 
 	/* 
@@ -109,10 +109,10 @@ export const example = async (guildId: string, wrapper: Wrapper, message: Messag
 			queue.push(song);
 			message.channel.send("Moved song to the back of the queue!");
 		} else {
-			message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments(settings)] });
+			message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
 		}
 	} else {
 		// if position is greater than queue length we send an error message
-		message.channel.send({ embeds: [wrapper.messageMenager.outOfScope("position")] });
+		message.channel.send({ embeds: [wrapper.messageManager.outOfScope("position")] });
 	}
 }

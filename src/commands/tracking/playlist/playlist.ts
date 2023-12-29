@@ -27,12 +27,12 @@ export const settings: CommandSettings = {
 }
 
 export const playlist = async (guildId: string, wrapper: Wrapper, message: Message, args: string[]) => {
-	const db = wrapper.databaseMenager;
+	const db = wrapper.databaseManager;
 	const guild = await db.getGuild(guildId);
 	const playlistId = parseInt(args[0]);
 
 	if (!playlistId || isNaN(playlistId)) {
-		message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments(settings)] });
+		message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
 		return;
 	}
 
@@ -40,7 +40,7 @@ export const playlist = async (guildId: string, wrapper: Wrapper, message: Messa
 		const command = args[1];
 
 		if (!await db.checkPlaylist(playlistId, guildId)) {
-			message.channel.send({ embeds: [wrapper.messageMenager.noPlaylist(playlistId.toString())] });
+			message.channel.send({ embeds: [wrapper.messageManager.noPlaylist(playlistId.toString())] });
 			return;
 		}
 
@@ -51,7 +51,7 @@ export const playlist = async (guildId: string, wrapper: Wrapper, message: Messa
 			while (songs.length > 0) {
 				// divide result into messages with max 50 songs each
 				const chunk = songs.splice(0, 50);
-				message.channel.send({ embeds: [wrapper.messageMenager.playlist(chunk, counter)] });
+				message.channel.send({ embeds: [wrapper.messageManager.playlist(chunk, counter)] });
 				counter += 50;
 			}
 			return;
@@ -59,25 +59,25 @@ export const playlist = async (guildId: string, wrapper: Wrapper, message: Messa
 
 		switch (command) {
 			case "add": case "a": {
-				wrapper.commandMenager.proxyInvoke("playlistadd", guildId, wrapper, message, args);
+				wrapper.commandManager.proxyInvoke("playlistadd", guildId, wrapper, message, args);
 				break;
 			}
 
 			case "erase": case "e": {
-				wrapper.commandMenager.proxyInvoke("playlisterase", guildId, wrapper, message, args);
+				wrapper.commandManager.proxyInvoke("playlisterase", guildId, wrapper, message, args);
 				break;
 			}
 
 			case "play": case "p": {
-				wrapper.commandMenager.proxyInvoke("playlistplay", guildId, wrapper, message, args);
+				wrapper.commandManager.proxyInvoke("playlistplay", guildId, wrapper, message, args);
 				break;
 			}
 			default: {
-				message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments(settings)] });
+				message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
 				break;
 			}
 		}
 	} else {
-		message.channel.send({ embeds: [wrapper.messageMenager.trackingRequired()] });
+		message.channel.send({ embeds: [wrapper.messageManager.trackingRequired()] });
 	}
 }

@@ -14,17 +14,17 @@ export const settings: CommandSettings = {
 }
 
 export const removeplaylist = async (guildId: string, wrapper: Wrapper, message: Message, args: string[]) => {
-	const guild = await wrapper.databaseMenager.getGuild(guildId);
+	const guild = await wrapper.databaseManager.getGuild(guildId);
 	const id = parseInt(args[0]);
 	if (!id || isNaN(id)) return;
 
 	if (guild) {
-		const playlist = await wrapper.databaseMenager.getPlaylist(id);
+		const playlist = await wrapper.databaseManager.getPlaylist(id);
 		if (!playlist) return;
-		await wrapper.databaseMenager.removePlaylist(id);
-		message.channel.send({ embeds: [wrapper.messageMenager.playlistRemoved(playlist)] });
+		await wrapper.databaseManager.removePlaylist(id);
+		message.channel.send({ embeds: [wrapper.messageManager.playlistRemoved(playlist)] });
 	}
 	else {
-		message.channel.send({ embeds: [wrapper.messageMenager.trackingRequired()] });
+		message.channel.send({ embeds: [wrapper.messageManager.trackingRequired()] });
 	}
 }

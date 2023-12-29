@@ -1,4 +1,4 @@
-'use strict'
+"use strict"
 
 import { Interaction, Message } from 'discord.js';
 import sqlite3 from 'sqlite3';
@@ -9,6 +9,9 @@ import { Wrapper } from '@/structures/Wrapper';
 import config from 'config';
 
 const wrapper = new Wrapper(config.prefix);
+
+const args = process.argv.slice(2);
+if (args.includes("-v")) wrapper.verbose = true;
 
 new sqlite3.Database("./database.db", sqlite3.OPEN_READWRITE, (err) => {
 	if (err) {
@@ -35,12 +38,12 @@ const init = () => {
 			try { wrapper.client.login(answer); } catch { console.error("Failed to login"); return; }
 			rli.close();
 			config.token = answer;
-			wrapper.commandMenager.setupCommands();
+			wrapper.commandManager.setupCommands();
 		});
 	}
 	else {
 		try { wrapper.client.login(config.token); } catch { console.error("Failed to login"); return; }
-		wrapper.commandMenager.setupCommands();
+		wrapper.commandManager.setupCommands();
 	}
 };
 
@@ -50,7 +53,7 @@ wrapper.client.on('ready', async () => {
 		writeFile('./config.json', JSON.stringify(config, null, 2), (err) => {
 			if (err) console.warn(err);
 		});
-		await wrapper.databaseMenager.dbCleenup();
+		await wrapper.databaseManager.dbCleenup();
 		console.log(`${wrapper.client.user.username} successfully logged in`);
 	}
 });
@@ -61,7 +64,7 @@ wrapper.client.on('messageCreate', async (message: Message) => {
 	if (message.author.bot) return;
 	if (!message.content.startsWith(wrapper.prefix)) return;
 
-	wrapper.commandMenager.invoke(message.guildId, wrapper.prefix, wrapper, message);
+	wrapper.commandManager.invoke(message.guildId, wrapper.prefix, wrapper, message);
 });
 
 // TODO: discord / commands support

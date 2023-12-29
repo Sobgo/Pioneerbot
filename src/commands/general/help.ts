@@ -14,5 +14,5 @@ export const settings: CommandSettings = {
 }
 
 export const help = async (_guildId: string, wrapper: Wrapper, message: Message, args: string[]) => {
-	message.channel.send({ embeds: [wrapper.messageMenager.help(args[0])] });
+	message.channel.send({ embeds: [wrapper.messageManager.help(args[0])] });
 }

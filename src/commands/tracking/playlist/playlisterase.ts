@@ -5,7 +5,7 @@ import { Wrapper } from "@/structures/Wrapper";
 import { getVideoId, isValidUrl } from "@/scrapper";
 
 export const playlisterase = async (guildId: string, wrapper: Wrapper, message: Message, args: string[]) => {
-	const db = wrapper.databaseMenager;
+	const db = wrapper.databaseManager;
 	const playlistId = parseInt(args[0]);
 	const link = args[2];
 
@@ -17,10 +17,10 @@ export const playlisterase = async (guildId: string, wrapper: Wrapper, message: 
 			const playlist = await db.getPlaylist(playlistId);
 			if (playlist == null || song == null) return;
 
-			message.channel.send({ embeds: [wrapper.messageMenager.removedFromPlaylist(playlist, song)] });
+			message.channel.send({ embeds: [wrapper.messageManager.removedFromPlaylist(playlist, song)] });
 			await db.removeFromPlaylist(playlistId, ytid);
 		} else {
-			message.channel.send({ embeds: [wrapper.messageMenager.invalidURL(link)] });
+			message.channel.send({ embeds: [wrapper.messageManager.invalidURL(link)] });
 			return;
 		}
 	} else {
@@ -31,7 +31,7 @@ export const playlisterase = async (guildId: string, wrapper: Wrapper, message: 
 		const playlist = await db.getPlaylist(playlistId);
 		if (playlist == null || song == null) return;
 
-		message.channel.send({ embeds: [wrapper.messageMenager.removedFromPlaylist(playlist, song)] });
+		message.channel.send({ embeds: [wrapper.messageManager.removedFromPlaylist(playlist, song)] });
 
 		const ytid = getVideoId(song.url);
 		await db.removeFromPlaylist(playlistId, ytid);

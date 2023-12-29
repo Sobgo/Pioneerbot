@@ -1,6 +1,6 @@
 "use strict";
 
-import { GuildMember } from "discord.js";
+import { GuildMember, escapeMarkdown } from "discord.js";
 import { Song as PrismaSong, Playlist } from "@prisma/client";
 
 import { Song } from "@/structures/Song";
@@ -44,7 +44,7 @@ export const songsToList = (list: Song[] | PrismaSong[], startPos: number = 0) =
 export const playlistsToList = (list: Playlist[]) => {
 	if (!list.length) return "No playlists found";
 	return list.map((element) => {
-		return `${element.id}. ${element.name}`
+		return `${element.id}\. ${element.name}`
 	}).join('\n');
 }
 

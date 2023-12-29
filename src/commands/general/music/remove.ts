@@ -23,15 +23,15 @@ export const remove = async (guildId: string, wrapper: Wrapper, message: Message
 	const count = args[1] ? parseInt(args[1]) : 1;
 
 	if (isNaN(start) || isNaN(count)) {
-		message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments(settings)] });
+		message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
 		return;
 	}
 
 	if (start < 0 || start >= queue.length || count <= 0) {
-		message.channel.send({ embeds: [wrapper.messageMenager.outOfScope()] });
+		message.channel.send({ embeds: [wrapper.messageManager.outOfScope()] });
 		return;
 	}
 
 	const songs = queue.remove(start, Math.min(count, queue.length - start));
-	message.channel.send({ embeds: [wrapper.messageMenager.removed(songs)] });
+	message.channel.send({ embeds: [wrapper.messageManager.removed(songs)] });
 }

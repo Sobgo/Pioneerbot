@@ -4,17 +4,19 @@ import { Message } from "discord.js";
 import { Wrapper } from "@/structures/Wrapper";
 import { CommandSettings } from "@/structures/types";
 
+const TAIL = 25;
+
 export const settings: CommandSettings = {
-	name: "Play oldest",
-	invokes: ["playoldest", "po"],
-	description: "Selects `[count]` songs from guild history that haven't been played for the longest time "
-		+ "and adds them to the queue, if no `[count]` is specified it will select one song.",
+	name: "Play smart",
+	invokes: ["playsmart", "ps"],
+	description: "A combination of playrandom and playoldest that aims to provide most natural next candidate."
+	+ "Selects `[count]` songs from guild history and adds them to the queue, if no `[count]` is specified it will select one song.",
 	usage: "[count]",
-	category: "tracking",
+	category: "experimental",
 	list: true
 }
 
-export const playoldest = async (guildId: string, wrapper: Wrapper, message: Message, args: string[]) => {
+export const playsmart = async (guildId: string, wrapper: Wrapper, message: Message, args: string[]) => {
 	const db = wrapper.databaseManager;
 	const guild = await db.getGuild(guildId);
 	const queue = await wrapper.checkQueue(guildId, message, true);
@@ -29,8 +31,11 @@ export const playoldest = async (guildId: string, wrapper: Wrapper, message: Mes
 			return;
 		}
 
-		let result = await db.getByTimeFromPlaylist(playlistId, amount);
+		let result = await db.getByTimeFromPlaylist(playlistId, amount + TAIL);
 		if (result == null || result.length == 0) return;
+
+		// random shuffle results and take first amount
+		result = result.sort(() => Math.random() - 0.5).slice(0, amount);
 
 		if (!queue.current) {
 			queue.push(result.splice(0, 1)[0]);

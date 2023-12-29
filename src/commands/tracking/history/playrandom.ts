@@ -15,7 +15,7 @@ export const settings: CommandSettings = {
 }
 
 export const playrandom = async (guildId: string, wrapper: Wrapper, message: Message, args: string[]) => {
-	const db = wrapper.databaseMenager;
+	const db = wrapper.databaseManager;
 	const guild = await db.getGuild(guildId);
 	const queue = await wrapper.checkQueue(guildId, message, true);
 	if (!queue) return;
@@ -25,7 +25,7 @@ export const playrandom = async (guildId: string, wrapper: Wrapper, message: Mes
 		const amount = args[0] ? parseInt(args[0]) : 1;
 
 		if (isNaN(amount)) {
-			message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments(settings)] });
+			message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
 			return;
 		}
 
@@ -41,11 +41,11 @@ export const playrandom = async (guildId: string, wrapper: Wrapper, message: Mes
 		while (result.length > 0) {
 			// divide result into messages with max 50 songs each
 			const chunk = result.splice(0, 50);
-			message.channel.send({ embeds: [wrapper.messageMenager.queueAdd(chunk, queue.length)] });
+			message.channel.send({ embeds: [wrapper.messageManager.queueAdd(chunk, queue.length)] });
 			queue.push(chunk);
 		}
 	}
 	else {
-		message.channel.send({ embeds: [wrapper.messageMenager.trackingRequired()] });
+		message.channel.send({ embeds: [wrapper.messageManager.trackingRequired()] });
 	}
 }

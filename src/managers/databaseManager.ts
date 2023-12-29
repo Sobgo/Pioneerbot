@@ -7,7 +7,7 @@ import { getVideoId } from "@/scrapper";
 
 const URL = "https://www.youtube.com/watch?v=";
 
-export class databaseMenager {
+export class databaseManager {
 
 	private db = new PrismaClient();
 
@@ -215,12 +215,14 @@ export class databaseMenager {
 		return converted.filter((s): s is Song => s != null);
 	}
 
-	public async getOldestFromPlaylist(playlistId: number, amount: number) {
+	public async getByTimeFromPlaylist(playlistId: number, amount: number, order: "asc" | "desc" = "asc") {
 		const playlist = await this.getPlaylist(playlistId);
 		if (!playlist) return null;
 
+		if (order != "asc" && order != "desc") throw new Error("Invalid order in getByTimeFromPlaylist()");
+
 		const result = await this.db.content.findMany({
-			where: { playlist_id: playlistId }, orderBy: { playtime_date: "asc" }, take: amount
+			where: { playlist_id: playlistId }, orderBy: { playtime_date: order }, take: amount
 		});
 
 		// convert to Song objects
@@ -234,7 +236,7 @@ export class databaseMenager {
 				song.title,
 				song.author,
 				song.duration.toString(),
-				"oldest"
+				order == "asc" ? "oldest" : "latest"
 			);
 		})));
 
@@ -284,5 +286,3 @@ export class databaseMenager {
 		}
 	}
 }
-
-

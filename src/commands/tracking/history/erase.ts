@@ -16,7 +16,7 @@ export const settings: CommandSettings = {
 }
 
 export const erase = async (guildId: string, wrapper: Wrapper, message: Message, args: string[]) => {
-	const db = wrapper.databaseMenager;
+	const db = wrapper.databaseManager;
 	const queue = wrapper.get(guildId);
 	let toRemove;
 
@@ -30,7 +30,7 @@ export const erase = async (guildId: string, wrapper: Wrapper, message: Message,
 		}
 		// if argument is given, remove the song with given link
 		else if (!isValidUrl(args[0])) {
-			message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments(settings)] });
+			message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
 			return;
 		}
 		else {
@@ -46,9 +46,9 @@ export const erase = async (guildId: string, wrapper: Wrapper, message: Message,
 		const song = await db.getSong(toRemove);
 		if (song == null) return;
 		db.removeFromPlaylist(playlistId, toRemove);
-		message.channel.send({ embeds: [wrapper.messageMenager.erased(song)] });
+		message.channel.send({ embeds: [wrapper.messageManager.erased(song)] });
 	}
 	else {
-		message.channel.send({ embeds: [wrapper.messageMenager.trackingRequired()] });
+		message.channel.send({ embeds: [wrapper.messageManager.trackingRequired()] });
 	}
 }

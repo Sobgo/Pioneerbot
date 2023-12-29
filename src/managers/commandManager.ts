@@ -1,13 +1,13 @@
 "use strict"
 import * as fs from "fs";
-import { Message, EmbedBuilder } from "discord.js";
+import { Message } from "discord.js";
+const { EmbedBuilder } = require("discord.js") as any; // incomplete types
 
 import { Wrapper } from "@/structures/Wrapper";
-import { messageMenager } from "@/menagers/messageMenager";
+import { messageManager } from "src/managers/messageManager";
 import config from 'config';
 
-export class commandMenager {
-
+export class commandManager {
 	private DIR = __dirname + "/../commands";
 
 	private commands: Record<string, any> = {
@@ -18,15 +18,13 @@ export class commandMenager {
 	};
 
 	public setupCommands() {
-
 		console.log("deployed commands:");
 
 		// for each dir in commands dir
 		this.importCommands(this.DIR);
 
 		// create help menu
-		messageMenager.help = (commandInvoke: string | undefined = undefined) => {
-
+		messageManager.help = (commandInvoke: string | undefined = undefined) => {
 			commandInvoke = commandInvoke?.toLowerCase();
 
 			const infoMain = "**Type: `" + config.prefix + "help [category]` to display commands from a category**\n"
@@ -73,6 +71,7 @@ export class commandMenager {
 					.setColor("#2ECC71")
 					.setTitle("**" + commandInvoke + " commands list:**")
 					.setDescription(info + "**" + commandInvoke + " commands list:\n**" + commands)
+
 			// single command
 			} else if (commandInvoke in this.commands.invokes) {
 
@@ -160,8 +159,7 @@ export class commandMenager {
 		});
 	}
 
-	public async invoke(ID: string, PREFIX: string, wrapper: Wrapper, message: Message) {
-
+	public async invoke(guildId: string, PREFIX: string, wrapper: Wrapper, message: Message) {
 		// extract from message
 		const args = message.content.trim().split(" ");
 		const invoke = args.shift()?.toLowerCase().slice(PREFIX.length);
@@ -171,13 +169,14 @@ export class commandMenager {
 		if (invoke in this.commands.invokes) {
 			// invoke command
 			const name = this.commands.invokes[invoke];
-			await this.commands.functions[name](ID, wrapper, message, args);
+			await this.commands.functions[name](guildId, wrapper, message, args);
 		} else {
-			message.channel.send({ embeds: [wrapper.messageMenager.invalidCommand(invoke)] });
+			message.channel.send({ embeds: [wrapper.messageManager.invalidCommand(invoke)] });
 		}
 	}
 
-	public async proxyInvoke(invoke: string, ID: string, wrapper: Wrapper, message: Message, args: string[]) {
-		await this.commands.functions[invoke](ID, wrapper, message, args);
+	public async proxyInvoke(invoke: string, guildId: string, wrapper: Wrapper, message: Message, args: string[]) {
+		// if (!(invoke in this.commands.invokes)) throw "Command not found";
+		await this.commands.functions[invoke](guildId, wrapper, message, args);
 	}
 }

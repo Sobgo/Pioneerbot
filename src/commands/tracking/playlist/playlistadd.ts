@@ -5,7 +5,7 @@ import { Wrapper } from "@/structures/Wrapper";
 import { ytsr, isValidUrl } from "@/scrapper";
 
 export const playlistadd = async (guildId: string, wrapper: Wrapper, message: Message, args: string[]) => {
-	const db = wrapper.databaseMenager;
+	const db = wrapper.databaseManager;
 	const playlistId = parseInt(args[0]);
 	const link = args[2];
 	const playlist = await db.getPlaylist(playlistId, guildId);
@@ -17,9 +17,9 @@ export const playlistadd = async (guildId: string, wrapper: Wrapper, message: Me
 			if (!song) return;
 			
 			await db.addToPlaylist(playlistId, song[0]);
-			message.channel.send({ embeds: [wrapper.messageMenager.addedToPlaylist(playlist, song[0])] });
+			message.channel.send({ embeds: [wrapper.messageManager.addedToPlaylist(playlist, song[0])] });
 		} else {
-			message.channel.send({ embeds: [wrapper.messageMenager.invalidURL(link)] });
+			message.channel.send({ embeds: [wrapper.messageManager.invalidURL(link)] });
 			return;
 		}
 	} else {
@@ -29,6 +29,6 @@ export const playlistadd = async (guildId: string, wrapper: Wrapper, message: Me
 		if (!song) return;
 
 		await db.addToPlaylist(playlistId, song);
-		message.channel.send({ embeds: [wrapper.messageMenager.addedToPlaylist(playlist, song)] });
+		message.channel.send({ embeds: [wrapper.messageManager.addedToPlaylist(playlist, song)] });
 	}
 }

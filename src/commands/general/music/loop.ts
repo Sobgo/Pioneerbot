@@ -17,5 +17,5 @@ export const loop = async (guildId: string, wrapper: Wrapper, message: Message, 
 	if (!queue) return;
 
 	queue.loop = !queue.loop;
-	message.channel.send({ embeds: [wrapper.messageMenager.loop(queue.loop)] });
+	message.channel.send({ embeds: [wrapper.messageManager.loop(queue.loop)] });
 }

@@ -19,17 +19,17 @@ export const search = async (guildId: string, wrapper: Wrapper, message: Message
 	const query = args.map((element) => { return element }).join(' ');
 
 	if (query.length < 1) {
-		message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments(settings)] });
+		message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
 		return;
 	}
 
 	const result = await ytsr(query);
 
 	if (result.length > 0) {
-		message.channel.send({ embeds: [wrapper.messageMenager.search(result)] });
+		message.channel.send({ embeds: [wrapper.messageManager.search(result)] });
 		const queue = wrapper.get(guildId);
 		if (queue) queue.cachedResult = result;
 	} else {
-		message.channel.send({ embeds: [wrapper.messageMenager.noResult()] });
+		message.channel.send({ embeds: [wrapper.messageManager.noResult()] });
 	}
 }

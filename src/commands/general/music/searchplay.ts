@@ -24,12 +24,12 @@ export const searchplay = async (guildId: string, wrapper: Wrapper, message: Mes
 
 	// validate args
 	if (isNaN(position)) {
-		message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments(settings)] });
+		message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
 		return;
 	}
 
 	if (position < 0) {
-		message.channel.send({ embeds: [wrapper.messageMenager.outOfScope()] });
+		message.channel.send({ embeds: [wrapper.messageManager.outOfScope()] });
 		return;
 	}
 
@@ -39,12 +39,12 @@ export const searchplay = async (guildId: string, wrapper: Wrapper, message: Mes
 	}
 
 	if (queue.cachedResult.length < 1) {
-		message.channel.send({ embeds: [wrapper.messageMenager.noQuery()] });
+		message.channel.send({ embeds: [wrapper.messageManager.noQuery()] });
 		return;
 	}
 
 	if (queue.cachedResult.length <= position) {
-		message.channel.send({ embeds: [wrapper.messageMenager.outOfScope("position")] });
+		message.channel.send({ embeds: [wrapper.messageManager.outOfScope("position")] });
 		return;
 	}
 
@@ -56,6 +56,6 @@ export const searchplay = async (guildId: string, wrapper: Wrapper, message: Mes
 		queue.next();
 		if (queue.current) queue.playResource(queue.current);
 	} else {
-		message.channel.send({ embeds: [wrapper.messageMenager.queueAdd([song], queue.length - 1)] });
+		message.channel.send({ embeds: [wrapper.messageManager.queueAdd([song], queue.length - 1)] });
 	}
 }

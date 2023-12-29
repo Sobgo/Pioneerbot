@@ -18,5 +18,5 @@ export const shuffle = async (guildId: string, wrapper: Wrapper, message: Messag
 
 	queue.shuffle();
 
-	message.channel.send({ embeds: [wrapper.messageMenager.shuffled()] });
+	message.channel.send({ embeds: [wrapper.messageManager.shuffled()] });
 }

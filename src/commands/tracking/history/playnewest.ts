@@ -5,16 +5,16 @@ import { Wrapper } from "@/structures/Wrapper";
 import { CommandSettings } from "@/structures/types";
 
 export const settings: CommandSettings = {
-	name: "Play oldest",
-	invokes: ["playoldest", "po"],
-	description: "Selects `[count]` songs from guild history that haven't been played for the longest time "
-		+ "and adds them to the queue, if no `[count]` is specified it will select one song.",
+	name: "Play newest",
+	invokes: ["playnewest", "pn"],
+	description: "Selects `[count]` most recently played songs from guild history"
+	+ "and adds them to the queue, if no `[count]` is specified it will select one song.",
 	usage: "[count]",
 	category: "tracking",
 	list: true
 }
 
-export const playoldest = async (guildId: string, wrapper: Wrapper, message: Message, args: string[]) => {
+export const playnewest = async (guildId: string, wrapper: Wrapper, message: Message, args: string[]) => {
 	const db = wrapper.databaseManager;
 	const guild = await db.getGuild(guildId);
 	const queue = await wrapper.checkQueue(guildId, message, true);
@@ -29,7 +29,7 @@ export const playoldest = async (guildId: string, wrapper: Wrapper, message: Mes
 			return;
 		}
 
-		let result = await db.getByTimeFromPlaylist(playlistId, amount);
+		let result = await db.getByTimeFromPlaylist(playlistId, amount, "desc");
 		if (result == null || result.length == 0) return;
 
 		if (!queue.current) {

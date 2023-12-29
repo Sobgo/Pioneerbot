@@ -14,17 +14,17 @@ export const settings: CommandSettings = {
 }
 
 export const addplaylist = async (guildId: string, wrapper: Wrapper, message: Message, args: string[]) => {
-	const guild = await wrapper.databaseMenager.getGuild(guildId);
+	const guild = await wrapper.databaseManager.getGuild(guildId);
 	const name = args.map((element) => { return element }).join(' ');
 	if (!name) return;
 
 	if (guild) {
-		const playlist = await wrapper.databaseMenager.addPlaylist(guildId, name);
+		const playlist = await wrapper.databaseManager.addPlaylist(guildId, name);
 		if (playlist) {
-			message.channel.send({ embeds: [wrapper.messageMenager.playlistCreated(playlist)] });
+			message.channel.send({ embeds: [wrapper.messageManager.playlistCreated(playlist)] });
 		}
 	}
 	else {
-		message.channel.send({ embeds: [wrapper.messageMenager.trackingRequired()] });
+		message.channel.send({ embeds: [wrapper.messageManager.trackingRequired()] });
 	}
 }

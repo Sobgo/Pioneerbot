@@ -15,7 +15,7 @@ export const settings: CommandSettings = {
 }
 
 export const erasequeue = async (guildId: string, wrapper: Wrapper, message: Message, args: string[]) => {
-	const db = wrapper.databaseMenager;
+	const db = wrapper.databaseManager;
 	const queue = wrapper.get(guildId);
 
 	if (await db.checkGuild(guildId)) {
@@ -23,12 +23,12 @@ export const erasequeue = async (guildId: string, wrapper: Wrapper, message: Mes
 			const position = parseInt(args[0]) - 1;
 
 			if (isNaN(position)) {
-				message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments(settings)] });
+				message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
 				return;
 			}
 
 			if (position < 0 || position >= queue.length) {
-				message.channel.send({ embeds: [wrapper.messageMenager.outOfScope()] });
+				message.channel.send({ embeds: [wrapper.messageManager.outOfScope()] });
 				return;
 			}
 
@@ -42,14 +42,14 @@ export const erasequeue = async (guildId: string, wrapper: Wrapper, message: Mes
 				const ytid = getVideoId(song.url);
 				db.removeFromPlaylist(playlistId, ytid);
 				queue.remove(position);
-				message.channel.send({ embeds: [wrapper.messageMenager.erased(song)] });
+				message.channel.send({ embeds: [wrapper.messageManager.erased(song)] });
 			}
 			else {
-				message.channel.send({ embeds: [wrapper.messageMenager.noChannelBot()] });
+				message.channel.send({ embeds: [wrapper.messageManager.noChannelBot()] });
 			}
 		}
 	}
 	else {
-		message.channel.send({ embeds: [wrapper.messageMenager.trackingRequired()] });
+		message.channel.send({ embeds: [wrapper.messageManager.trackingRequired()] });
 	}
 }

@@ -1,5 +1,7 @@
 "use strict"
-import { EmbedBuilder, escapeMarkdown } from "discord.js";
+import { escapeMarkdown } from "discord.js";
+const { EmbedBuilder } = require("discord.js") as any; // incomplete types
+
 import { Song as PrismaSong, Playlist } from "@prisma/client";
 
 import { Song } from "@/structures/Song";
@@ -11,8 +13,8 @@ const RED = "#ff0000";
 const BLUE = "#0099ff";
 const PURPLE = "#9B59B6";
 
-export class messageMenager {
-	public static help: (commandInvoke?: string | undefined) => EmbedBuilder;
+export class messageManager {
+	public static help: (commandInvoke?: string | undefined) => typeof EmbedBuilder;
 
 	public static loop (loop: boolean) {
 		return new EmbedBuilder()
@@ -36,7 +38,7 @@ export class messageMenager {
 				.addFields(
 					{ name: 'Author', value: song.author, inline: true },
 					{ name: 'Length', value: secToTimestamp(song.duration), inline: true },
-					{ name: 'Requested by', value: song.username, inline: true })
+					{ name: 'Requested by', value: song.requester, inline: true })
 		} else {
 			return new EmbedBuilder()
 				.setColor(BLUE)
@@ -288,7 +290,7 @@ export class messageMenager {
 		return new EmbedBuilder()
 			.setColor(GREEN)
 			.setTitle(':page_with_curl:  Playlists:')
-			.setDescription('**' + escapeMarkdown(playlistsToList(playlists)) + '**');
+			.setDescription('**' + escapeMarkdown(playlistsToList(playlists), { numberedList: true }) + '**');
 	}
 
 	public static playlistCreated(playlist: Playlist) {

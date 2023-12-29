@@ -1,4 +1,5 @@
-"use strict";
+"use strict"
+
 import { 
 	AudioPlayer, 
 	AudioPlayerState, 
@@ -10,13 +11,12 @@ import {
 	VoiceConnection, 
 	VoiceConnectionStatus
 } from "@discordjs/voice";
-import { ChannelType, VoiceBasedChannel } from "discord.js";
+import { ChannelType, Message, VoiceBasedChannel, TextBasedChannel } from "discord.js";
 import { exec as ytdl } from "youtube-dl-exec";
 
 import { Wrapper } from "@/structures/Wrapper";
 import { Queue } from "@/structures/Queue";
 import { Song } from "@/structures/Song";
-import { MessageChannel } from "@/structures/types";
 import { getVideoId } from "@/scrapper";
 import config from 'config';
 
@@ -25,7 +25,7 @@ const FLAGS = config.ytdlFlags;
 
 export class GuildQueue extends Queue {
 	public guildId: string;
-	public textChannel: MessageChannel;
+	public textChannel: TextBasedChannel;
 	public player: AudioPlayer;
 	public wrapper: Wrapper;
 
@@ -40,12 +40,12 @@ export class GuildQueue extends Queue {
 	public loop: boolean = false;
 	public tracking: boolean = false;
 
-	public timer: any;
+	public repeat: Message | null = null;
 
-	public constructor(guildId: string, textChannel: MessageChannel, wrapper: Wrapper) {
+	public inactivityTimer: any;
+
+	public constructor(guildId: string, textChannel: TextBasedChannel, wrapper: Wrapper) {
 		super();
-
-		console.log(`Created new queue for guild ${guildId}`);
 
 		this.guildId = guildId;
 		this.voiceChannelId = null;
@@ -54,15 +54,18 @@ export class GuildQueue extends Queue {
 		this.connection = null;
 		this.wrapper = wrapper;
 
-		this.timer = setInterval(this.checkActivity, FIVE_MINUTES, this);
+		this.inactivityTimer = setInterval(this.checkActivity, FIVE_MINUTES, this);
 
 		this.player = createAudioPlayer();
 
 		// triggers when song ends
 		this.player.on(AudioPlayerStatus.Idle, (_oldState: AudioPlayerState, newState: AudioPlayerState) => {
-			console.log(newState.status);
+			if (this.wrapper.verbose) console.log(`Guild: ${this.guildId}, Status: ${newState.status}`);
 
-			if (!this.loop) this.next();
+			if (!this.loop) {
+				if (this.empty()) this.invoke();
+				this.next();
+			}
 			const song = this.current;
 			if (!song) return;
 			this.playResource(song);
@@ -70,12 +73,14 @@ export class GuildQueue extends Queue {
 
 		// triggers when song starts
 		this.player.on(AudioPlayerStatus.Playing, (_oldState: AudioPlayerState, newState: AudioPlayerState) => {
-			console.log(newState.status);
+			if (this.wrapper.verbose) console.log(`Guild: ${this.guildId}, Status: ${newState.status}`);
 
 			const song = this.current;
 			if (song == undefined) throw "undefined song";
-			if (!this.quiet) this.textChannel.send({ embeds: [this.wrapper.messageMenager.play(song)] });
+			if (!this.quiet) this.textChannel.send({ embeds: [this.wrapper.messageManager.play(song)] });
 		});
+
+		if (this.wrapper.verbose) console.log(`Created new queue for Guild: ${guildId}`);
 	}
 
 	/**
@@ -113,7 +118,7 @@ export class GuildQueue extends Queue {
 		}
 
 		connection.subscribe(this.player);
-		console.log(`Connection created for guild ${this.guildId} in voice channel ${voiceChannel.id}`);
+		if (this.wrapper.verbose) console.log(`Connection created for Guild: ${this.guildId} in voice channel: ${voiceChannel.id}`);
 
 		this.connection = connection;
 		return this.connection;
@@ -134,7 +139,7 @@ export class GuildQueue extends Queue {
 
 	private async addToDatabase(song: Song) {
 		// add song to database
-		const db = this.wrapper.databaseMenager;
+		const db = this.wrapper.databaseManager;
 
 		if (this.tracking) {
 			const guild = await db.getGuild(this.guildId);
@@ -170,10 +175,14 @@ export class GuildQueue extends Queue {
 			});
 
 			if (count != 0) return;
-			console.log(`No users in voice channel ${channel.id} in guild ${queue.guildId}, disconnecting...`);
+			if (this.wrapper.verbose) console.log(`No users in voice channel: ${channel.id} in Guild: ${queue.guildId}, disconnecting...`);
 
 		}
 		// if no voice channel connected or no users in voice channel remove queue
 		queue.wrapper.remove(queue.guildId);
+	}
+
+	private async invoke() {
+		if (this.repeat) await this.wrapper.commandManager.invoke(this.guildId, this.wrapper.prefix, this.wrapper, this.repeat);
 	}
 }

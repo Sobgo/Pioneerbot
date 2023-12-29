@@ -20,15 +20,15 @@ export const queue = async (guildId: string, wrapper: Wrapper, message: Message,
 
 	let position = args[0] ? parseInt(args[0]) - 1 : 0;
 	if (isNaN(position)) {
-		message.channel.send({ embeds: [wrapper.messageMenager.invalidArguments(settings)] });
+		message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
 		return;
 	}
 
 	if (position < 0 || position > queue.length) {
-		message.channel.send({ embeds: [wrapper.messageMenager.outOfScope("position")] });
+		message.channel.send({ embeds: [wrapper.messageManager.outOfScope("position")] });
 		return;
 	}
 
 	const toList = queue.get(position, position + 9);
-	message.channel.send({ embeds: [wrapper.messageMenager.queueList(toList, position)] });
+	message.channel.send({ embeds: [wrapper.messageManager.queueList(toList, position)] });
 }
