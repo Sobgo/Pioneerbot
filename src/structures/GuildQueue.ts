@@ -175,7 +175,7 @@ export class GuildQueue extends Queue {
 			});
 
 			if (count != 0) return;
-			if (this.wrapper.verbose) console.log(`No users in voice channel: ${channel.id} in Guild: ${queue.guildId}, disconnecting...`);
+			if (queue.wrapper.verbose) console.log(`No users in voice channel: ${channel.id} in Guild: ${queue.guildId}, disconnecting...`);
 
 		}
 		// if no voice channel connected or no users in voice channel remove queue
