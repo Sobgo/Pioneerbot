@@ -161,7 +161,7 @@ export class commandManager {
 
 	public async invoke(guildId: string, PREFIX: string, wrapper: Wrapper, message: Message) {
 		// extract from message
-		const args = message.content.trim().split(" ");
+		const args = message.content.trim().split(/\s+/);
 		const invoke = args.shift()?.toLowerCase().slice(PREFIX.length);
 
 		// if commandName privided and command exists

@@ -1,12 +1,11 @@
 "use strict";
 
-import { GuildMember, escapeMarkdown } from "discord.js";
+import { GuildMember } from "discord.js";
 import { Song as PrismaSong, Playlist } from "@prisma/client";
 
 import { Song } from "@/structures/Song";
 
 export const secToTimestamp = (sec: string | number) => {
-
 	if (sec === "LIVE") return sec;
 
 	if (typeof sec === "string") sec = parseInt(sec);

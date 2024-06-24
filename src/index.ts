@@ -30,10 +30,12 @@ const init = () => {
 
 	if (config.token.length < 1) {
 		const rli = createInterface({
-			input: process.stdin,
-			output: process.stdout
+			// as any until @types/node is updated to accept NodeJS.ReadStream
+			// in place of NodeJS.ReadableStream
+			input: process.stdin as any,
+			output: process.stdout as any
 		});
-
+		
 		rli.question("Please enter your discord api token: ", (answer) => {
 			try { wrapper.client.login(answer); } catch { console.error("Failed to login"); return; }
 			rli.close();
