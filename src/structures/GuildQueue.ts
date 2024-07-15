@@ -94,17 +94,6 @@ export class GuildQueue extends Queue {
 			selfDeaf: false
 		});
 
-		// hotfix for https://github.com/discordjs/discord.js/issues/9185
-		const networkStateChangeHandler = (_oldNetworkState: any, newNetworkState: any) => {
-			const newUdp = Reflect.get(newNetworkState, 'udp');
-			clearInterval(newUdp?.keepAliveInterval);
-		}
-
-		connection.on('stateChange', (oldState, newState) => {
-			Reflect.get(oldState, 'networking')?.off('stateChange', networkStateChangeHandler);
-			Reflect.get(newState, 'networking')?.on('stateChange', networkStateChangeHandler);
-		});
-
 		this.player.stop();
 
 		try {
@@ -132,6 +121,13 @@ export class GuildQueue extends Queue {
 		}
 
 		const stream = ytdl(song.url, FLAGS, { stdio: ["ignore", "pipe", "ignore"] });
+		
+		stream.catch((err) => {
+			if (err.exitCode === 1) return;
+			if (this.wrapper.verbose) console.error(err);
+			else console.log("Error in player child process");
+		});
+
 		if (!stream.stdout) return;
 		const resource = createAudioResource(stream.stdout);
 		this.player.play(resource);
