@@ -1,6 +1,6 @@
 "use strict"
 
-import { Interaction, Message } from 'discord.js';
+import { ActivityType, Interaction, Message } from 'discord.js';
 import sqlite3 from 'sqlite3';
 import { createInterface } from 'readline';
 import { writeFile, statSync } from 'fs';
@@ -65,6 +65,10 @@ wrapper.client.on('ready', async () => {
 			});
 		});
 	}
+
+	if (config.status?.length > 0) {
+		wrapper.client.user?.setActivity(config.status, { type: ActivityType.Playing });
+	} 
 });
 
 // prefixed commands 
