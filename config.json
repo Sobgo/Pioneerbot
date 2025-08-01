@@ -1,6 +1,7 @@
 {
   "token": "",
   "prefix": "!",
+  "status": "",
   "ytdlFlags": {
     "output": "-",
     "quiet": true,

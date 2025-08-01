@@ -15,9 +15,9 @@ const wrapper = new Wrapper(config.prefix);
 const args = process.argv.slice(2);
 if (args.includes("-v")) wrapper.verbose = true;
 
-new sqlite3.Database("./database.db", sqlite3.OPEN_READWRITE, (err) => {
+new sqlite3.Database("./data/database.db", sqlite3.OPEN_READWRITE, (err) => {
 	if (err) {
-		new sqlite3.Database("./database.db", () => {
+		new sqlite3.Database("./data/database.db", () => {
 			init();
 		});
 	}
@@ -25,7 +25,7 @@ new sqlite3.Database("./database.db", sqlite3.OPEN_READWRITE, (err) => {
 });
 
 const init = () => {
-	if (statSync("./database.db").size == 0) {
+	if (statSync("./data/database.db").size == 0) {
 		console.warn("You need to build a database from schema. Type: npm run migrate");
 		return;
 	}

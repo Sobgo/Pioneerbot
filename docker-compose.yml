@@ -1,0 +1,14 @@
+name: pioneerbot
+
+services:
+  pioneer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - data:/data
+      - migrations:/prisma/migrations
+
+volumes:
+  data:
+  migrations:
