@@ -25,6 +25,7 @@ export const repeat = async (guildId: string, wrapper: Wrapper, message: Message
 
 	if (!command) {
 		queue.repeat = null;
+		message.channel.isSendable() &&
 		message.channel.send("Repeat stopped");
 		return;
 	}
@@ -33,9 +34,11 @@ export const repeat = async (guildId: string, wrapper: Wrapper, message: Message
 
 	try {
 		queue.repeat = message;
+		message.channel.isSendable() &&
 		message.channel.send("Repeat command set");
 		await wrapper.commandManager.invoke(guildId, wrapper.prefix, wrapper, message);
 	} catch (error) {
+		message.channel.isSendable() &&
 		message.channel.send("Error occured while executing command");
 		if (wrapper.verbose) console.log(error);
 	}

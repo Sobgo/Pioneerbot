@@ -132,6 +132,10 @@ export class databaseManager {
 		});
 	}
 
+	public async getAllGuilds() {
+		return await this.db.guild.findMany();
+	}
+
 	public async getAllSongs() {
 		return await this.db.song.findMany();
 	}
@@ -193,6 +197,7 @@ export class databaseManager {
 
 		// raw SQL because random() is not supported in Prisma
 		// selects <amount> of songs from playlist with <playlistId> in random order
+		// https://jan.kneschke.de/projects/mysql/order-by-rand/
 		const result = await this.db.$queryRaw<Content[]>(Prisma.sql(
 			[`SELECT * FROM content WHERE playlist_id = ${playlistId} ORDER BY random() LIMIT ${amount}`]
 		));

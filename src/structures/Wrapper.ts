@@ -49,14 +49,14 @@ export class Wrapper {
 	 * @param {string} id - Id of a guild
 	 */
 	public remove(id: string): boolean {
-		if (!(id in this.queues)) return false;
-		const connection = this.queues[id].connection;
-		if (connection) connection.destroy();
+		const queue = this.get(id);
+		if (queue == null) return false;
 
-		if (this.verbose) console.log(`Removed queue for Guild: ${id}`);
-
+		queue.destroyConnection();
+		
 		clearInterval(this.queues[id].inactivityTimer);
 		delete this.queues[id];
+		if (this.verbose) console.log(`Removed queue for Guild: ${id}`);
 		return true;
 	}
 
@@ -76,32 +76,41 @@ export class Wrapper {
 	 * @param {Message} message - Message from which the command was called
 	 * @param {boolean} toJoin - If true then if queue doesn't exist it will be created
 	 */
-	public async checkQueue(guildId: string, message: Message, toJoin: boolean = false): Promise<GuildQueue | null> {
+	public async checkQueue(guildId: string, message: Message, toJoin: boolean = false, force = false): Promise<GuildQueue | null> {
 		let queue = this.get(guildId);
 		let memberVoice = message.member?.voice;
 
 		if (memberVoice == undefined || !memberVoice.channel) {
-			message.channel.send({ embeds: [this.messageManager.noChannelUser()] });
+			this.messageManager.send("noChannelUser", message.channel);
 			return null;
 		}
 
-		if (!queue && toJoin) {
-			queue = new GuildQueue(guildId, message.channel, this);
+		// create queue 
+		if (!queue && !toJoin) return null;
+		if (!queue) {
+			queue = new GuildQueue(guildId, this);
 			await this.add(guildId, queue);
+		}
+
+		// create connection
+		if (!queue.voiceChannelId && !toJoin) {
+			this.messageManager.send("noChannelBot", message.channel);
+			return null;
+		}
+
+		if (!queue.voiceChannelId || force) {
+			if (message.channel.isSendable())
+				queue.textChannel = message.channel;
+
+			// await queue.destroyConnection();
 			await queue.createConnection(memberVoice.channel);
 		}
 
-		if (!queue) return null;
-
-		if (!queue.voiceChannelId) {
-			message.channel.send({ embeds: [this.messageManager.noChannelBot()] });
-			return null;
-		}
-
 		if (memberVoice == undefined || memberVoice.channelId == null || memberVoice.channelId != queue?.voiceChannelId) {
-			message.channel.send({ embeds: [this.messageManager.noChannelUser(queue.voiceChannelName ? queue.voiceChannelName : undefined)] });
+			this.messageManager.send("noChannelUser", message.channel, queue.voiceChannelName ? queue.voiceChannelName : undefined);
 			return null;
 		}
+
 		return queue;
 	}
 }

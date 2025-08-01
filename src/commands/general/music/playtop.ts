@@ -23,7 +23,7 @@ export const playtop = async (guildId: string, wrapper: Wrapper, message: Messag
 	if (query.length > 0) {
 		const result = await ytsr(query, { user: message.member });
 		if (result.length < 1) {
-			message.channel.send({ embeds: [wrapper.messageManager.noResult()] });
+			wrapper.messageManager.send("noResult", message.channel);
 			return;
 		}
 		const song = result[0];
@@ -34,9 +34,9 @@ export const playtop = async (guildId: string, wrapper: Wrapper, message: Messag
 			queue.next();
 			if (queue.current) queue.playResource(queue.current);
 		} else {
-			message.channel.send({ embeds: [wrapper.messageManager.queueAdd([song], 0)] });
+			wrapper.messageManager.send("queueAdd", message.channel, [song], 0);
 		}
 	} else {
-		message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
+		wrapper.messageManager.send("invalidArgument", message.channel, settings);
 	}
 }

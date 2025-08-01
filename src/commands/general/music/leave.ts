@@ -13,5 +13,12 @@ export const settings: CommandSettings = {
 }
 
 export const leave = async (guildId: string, wrapper: Wrapper, _message: Message, _args: string[]) => {
-	wrapper.remove(guildId);
+	const queue = wrapper.get(guildId);
+	if (queue == null) return;
+
+	if (!queue.tracking) {
+		wrapper.remove(guildId);
+	} else {
+		queue.destroyConnection();
+	}
 }

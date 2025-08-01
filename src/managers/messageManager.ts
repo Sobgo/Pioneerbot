@@ -1,7 +1,5 @@
 "use strict"
-import { escapeMarkdown } from "discord.js";
-const { EmbedBuilder } = require("discord.js") as any; // incomplete types
-
+import { escapeMarkdown, TextBasedChannel, EmbedBuilder } from "discord.js";
 import { Song as PrismaSong, Playlist } from "@prisma/client";
 
 import { Song } from "@/structures/Song";
@@ -14,7 +12,24 @@ const BLUE = "#0099ff";
 const PURPLE = "#9B59B6";
 
 export class messageManager {
-	public static help: (commandInvoke?: string | undefined) => typeof EmbedBuilder;
+	public static send<T extends keyof Omit<typeof Messages, "prototype">> (
+		messageType: T, 
+		channel: TextBasedChannel,
+		...args: Parameters<typeof Messages[T]>
+	) {
+		if (channel.isSendable()) {
+			// @ts-ignore
+			channel.send({ embeds: [Messages[messageType](...args)] });
+		}
+	}
+
+	public static setHelpMessage (helpMessage: (commandInvoke?: string | undefined) => EmbedBuilder) {
+		Messages.help = helpMessage;
+	}
+}
+
+class Messages {
+	public static help: (commandInvoke?: string | undefined) => EmbedBuilder;
 
 	public static loop (loop: boolean) {
 		return new EmbedBuilder()
@@ -46,7 +61,7 @@ export class messageManager {
 		}
 	}
 
-	public static invalidArguments(settings: Record<string, any>) {
+	public static invalidArgument(settings: Record<string, any>) {
 		return new EmbedBuilder()
 			.setColor(RED)
 			.setTitle('**:x:  Invalid Argument**')

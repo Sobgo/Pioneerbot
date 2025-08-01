@@ -17,9 +17,9 @@ export const playlistadd = async (guildId: string, wrapper: Wrapper, message: Me
 			if (!song) return;
 			
 			await db.addToPlaylist(playlistId, song[0]);
-			message.channel.send({ embeds: [wrapper.messageManager.addedToPlaylist(playlist, song[0])] });
+			wrapper.messageManager.send("addedToPlaylist", message.channel, playlist, song[0]);
 		} else {
-			message.channel.send({ embeds: [wrapper.messageManager.invalidURL(link)] });
+			wrapper.messageManager.send("invalidURL", message.channel, link);
 			return;
 		}
 	} else {
@@ -29,6 +29,6 @@ export const playlistadd = async (guildId: string, wrapper: Wrapper, message: Me
 		if (!song) return;
 
 		await db.addToPlaylist(playlistId, song);
-		message.channel.send({ embeds: [wrapper.messageManager.addedToPlaylist(playlist, song)] });
+		wrapper.messageManager.send("addedToPlaylist", message.channel, playlist, song);
 	}
 }

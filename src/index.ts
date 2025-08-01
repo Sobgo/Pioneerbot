@@ -5,7 +5,9 @@ import sqlite3 from 'sqlite3';
 import { createInterface } from 'readline';
 import { writeFile, statSync } from 'fs';
 
-import { Wrapper } from '@/structures/Wrapper';
+import { Wrapper} from '@/structures/Wrapper';
+import { GuildQueue } from '@/structures/GuildQueue';
+
 import config from 'config';
 
 const wrapper = new Wrapper(config.prefix);
@@ -30,10 +32,8 @@ const init = () => {
 
 	if (config.token.length < 1) {
 		const rli = createInterface({
-			// as any until @types/node is updated to accept NodeJS.ReadStream
-			// in place of NodeJS.ReadableStream
-			input: process.stdin as any,
-			output: process.stdout as any
+			input: process.stdin,
+			output: process.stdout
 		});
 		
 		rli.question("Please enter your discord api token: ", (answer) => {
@@ -57,6 +57,13 @@ wrapper.client.on('ready', async () => {
 		});
 		await wrapper.databaseManager.dbCleenup();
 		console.log(`${wrapper.client.user.username} successfully logged in`);
+
+		//  for every tracked guild add persistent queue
+		wrapper.databaseManager.getAllGuilds().then((guilds) => {
+			guilds.forEach((guild) => {
+				wrapper.add(guild.id, new GuildQueue(guild.id, wrapper));
+			});
+		});
 	}
 });
 

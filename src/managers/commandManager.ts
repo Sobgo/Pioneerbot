@@ -1,7 +1,7 @@
 "use strict"
 import * as fs from "fs";
-import { Message } from "discord.js";
-const { EmbedBuilder } = require("discord.js") as any; // incomplete types
+import { Message, EmbedBuilder } from "discord.js";
+// const { EmbedBuilder } = require("discord.js") as any; // incomplete types
 
 import { Wrapper } from "@/structures/Wrapper";
 import { messageManager } from "src/managers/messageManager";
@@ -24,7 +24,7 @@ export class commandManager {
 		this.importCommands(this.DIR);
 
 		// create help menu
-		messageManager.help = (commandInvoke: string | undefined = undefined) => {
+		messageManager.setHelpMessage((commandInvoke: string | undefined = undefined) => {
 			commandInvoke = commandInvoke?.toLowerCase();
 
 			const infoMain = "**Type: `" + config.prefix + "help [category]` to display commands from a category**\n"
@@ -101,7 +101,7 @@ export class commandManager {
 			} else {
 				return noCommand;
 			}
-		}
+		});
 	}
 
 	private importCommands(dirpath: string) {
@@ -171,7 +171,7 @@ export class commandManager {
 			const name = this.commands.invokes[invoke];
 			await this.commands.functions[name](guildId, wrapper, message, args);
 		} else {
-			message.channel.send({ embeds: [wrapper.messageManager.invalidCommand(invoke)] });
+			wrapper.messageManager.send("invalidCommand", message.channel, invoke);
 		}
 	}
 

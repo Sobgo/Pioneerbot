@@ -13,5 +13,5 @@ export const settings: CommandSettings = {
 }
 
 export const join = async (guildId: string, wrapper: Wrapper, message: Message, _args: string[]) => {
-	await wrapper.checkQueue(guildId, message, true);
+	await wrapper.checkQueue(guildId, message, true, true);
 };

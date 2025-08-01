@@ -11,7 +11,7 @@ import {
 	VoiceConnection, 
 	VoiceConnectionStatus
 } from "@discordjs/voice";
-import { ChannelType, Message, VoiceBasedChannel, TextBasedChannel } from "discord.js";
+import { ChannelType, Message, VoiceBasedChannel, TextBasedChannel, SendableChannels } from "discord.js";
 import { exec as ytdl } from "youtube-dl-exec";
 
 import { Wrapper } from "@/structures/Wrapper";
@@ -25,14 +25,13 @@ const FLAGS = config.ytdlFlags;
 
 export class GuildQueue extends Queue {
 	public guildId: string;
-	public textChannel: TextBasedChannel;
-	public player: AudioPlayer;
 	public wrapper: Wrapper;
 
-	public voiceChannelId: string | null;
-	public voiceChannelName: string | null;
-
-	public connection: VoiceConnection | null;
+	public player: AudioPlayer | null = null;
+	public textChannel: SendableChannels | null = null;
+	public voiceChannelId: string | null = null;
+	public voiceChannelName: string | null = null;
+	public connection: VoiceConnection | null = null;
 
 	public cachedResult: Song[] = [];
 
@@ -44,57 +43,68 @@ export class GuildQueue extends Queue {
 
 	public inactivityTimer: any;
 
-	public constructor(guildId: string, textChannel: TextBasedChannel, wrapper: Wrapper) {
+	public constructor(guildId: string, wrapper: Wrapper) {
 		super();
 
+		this.wrapper = wrapper;
 		this.guildId = guildId;
+
 		this.voiceChannelId = null;
 		this.voiceChannelName = null;
-		this.textChannel = textChannel;
 		this.connection = null;
-		this.wrapper = wrapper;
+		this.textChannel = null;
 
 		this.inactivityTimer = setInterval(this.checkActivity, FIVE_MINUTES, this);
-
-		this.player = createAudioPlayer();
-
-		// triggers when song ends
-		this.player.on(AudioPlayerStatus.Idle, (_oldState: AudioPlayerState, newState: AudioPlayerState) => {
-			if (this.wrapper.verbose) console.log(`Guild: ${this.guildId}, Status: ${newState.status}`);
-
-			if (!this.loop) {
-				if (this.empty()) this.invoke();
-				this.next();
-			}
-			const song = this.current;
-			if (!song) return;
-			this.playResource(song);
-		});
-
-		// triggers when song starts
-		this.player.on(AudioPlayerStatus.Playing, (_oldState: AudioPlayerState, newState: AudioPlayerState) => {
-			if (this.wrapper.verbose) console.log(`Guild: ${this.guildId}, Status: ${newState.status}`);
-
-			const song = this.current;
-			if (song == undefined) throw "undefined song";
-			if (!this.quiet) this.textChannel.send({ embeds: [this.wrapper.messageManager.play(song)] });
-		});
 
 		if (this.wrapper.verbose) console.log(`Created new queue for Guild: ${guildId}`);
 	}
 
 	/**
-	 * Connects bot to a voice channel.
+	 * Creates a connection to a voice channel (the bot user will join the channel).
+	 * If connection already existed it will be destroyed and the player will subscribe to a new connection.
 	 */
 	public createConnection = async (voiceChannel: VoiceBasedChannel) => {
+		if (this.connection) {
+			this.connection?.disconnect();
+			this.connection?.destroy();
+		}
+
 		const connection = joinVoiceChannel({
 			channelId: voiceChannel.id,
 			guildId: this.guildId,
 			adapterCreator: voiceChannel.guild.voiceAdapterCreator,
-			selfDeaf: false
+			selfDeaf: false,
 		});
 
-		this.player.stop();
+		if (this.player == null) {
+			this.player = createAudioPlayer();
+
+			// triggers when song ends
+			this.player.on(AudioPlayerStatus.Idle, (_, newState: AudioPlayerState) => {
+				if (this.wrapper.verbose) console.log(`Guild: ${this.guildId}, Status: ${newState.status}`);
+
+				if (!this.loop) {
+					if (this.empty()) this.invoke();
+					this.next();
+				}
+
+				const song = this.current;
+				if (!song) return;
+				this.playResource(song);
+			});
+
+			// triggers when song starts
+			this.player.on(AudioPlayerStatus.Playing, (_, newState: AudioPlayerState) => {
+				if (this.wrapper.verbose) console.log(`Guild: ${this.guildId}, Status: ${newState.status}`);
+
+				const song = this.current;
+				if (!song) throw "undefined song";
+
+				if (!this.quiet && this.textChannel) {
+					this.wrapper.messageManager.send("play", this.textChannel as TextBasedChannel, song);
+				}
+			});
+		}
 
 		try {
 			await entersState(connection, VoiceConnectionStatus.Ready, 10e3);
@@ -113,8 +123,18 @@ export class GuildQueue extends Queue {
 		return this.connection;
 	}
 
+	public async destroyConnection() {
+		this.connection?.disconnect();
+		this.connection?.destroy();
+		this.connection = null;
+		this.voiceChannelId = null;
+		this.voiceChannelName = null;
+		this.player?.stop();
+		this.player = null;
+	}
+
 	public playResource(song: Song) {
-		if (!this.connection) return;
+		if (!this.connection || !this.player) return;
 
 		if (this.tracking) {
 			this.addToDatabase(song);
@@ -152,7 +172,6 @@ export class GuildQueue extends Queue {
 	}
 
 	private async checkActivity(queue: GuildQueue) {
-
 		const client = queue.wrapper.client;
 		const id = queue.voiceChannelId;
 
@@ -165,17 +184,14 @@ export class GuildQueue extends Queue {
 
 			// check how many users in voice channel
 			let count = 0;
-
 			channel.members.map((member) => {
 				if (!member.user.bot) count += 1;
 			});
 
 			if (count != 0) return;
 			if (queue.wrapper.verbose) console.log(`No users in voice channel: ${channel.id} in Guild: ${queue.guildId}, disconnecting...`);
-
+			await queue.destroyConnection();
 		}
-		// if no voice channel connected or no users in voice channel remove queue
-		queue.wrapper.remove(queue.guildId);
 	}
 
 	private async invoke() {

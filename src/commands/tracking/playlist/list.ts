@@ -19,9 +19,9 @@ export const list = async (guildId: string, wrapper: Wrapper, message: Message, 
 	if (guild) {
 		const deaultPlaylistId = guild.default_playlist_id;
 		const filtered = playlists.filter((playlist) => { return playlist.id != deaultPlaylistId });
-		message.channel.send({ embeds: [wrapper.messageManager.playlists(filtered)] });
+		wrapper.messageManager.send("playlists", message.channel, filtered);
 	}
 	else {
-		message.channel.send({ embeds: [wrapper.messageManager.trackingRequired()] });
+		wrapper.messageManager.send("trackingRequired", message.channel);
 	}
 }

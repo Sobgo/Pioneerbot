@@ -57,6 +57,7 @@ export const example = async (guildId: string, wrapper: Wrapper, message: Messag
 	if (isNaN(position)) {
 		// if it is not a number we need to send an error message and return
 		// here we are sending a message to the channel
+		message.channel.isSendable() &&
 		message.channel.send("Position must be given and it must be a number!");
 		return;
 	}
@@ -64,14 +65,14 @@ export const example = async (guildId: string, wrapper: Wrapper, message: Messag
 	if (position < 1) {
 		// position must be greater than 0
 		// here we are using a message from messageManager which is a collection of predefined messages
-		message.channel.send({ embeds: [wrapper.messageManager.outOfScope("position")] });
+		wrapper.messageManager.send("outOfScope", message.channel, "position");
 		return;
 	}
 
 	// second argument is optional, if it is not given we will use "front" as default
 	const side = args[1] || "front";
 	if (side !== "front" && side !== "back") {
-		message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
+		wrapper.messageManager.send("invalidArgument", message.channel, settings);
 	}
 
 	/* 
@@ -104,15 +105,17 @@ export const example = async (guildId: string, wrapper: Wrapper, message: Messag
 		
 		if (side === "front") {
 			queue.add(0, song);
+			message.channel.isSendable() &&
 			message.channel.send("Moved song to the front of the queue!");
 		} else if (side === "back") {
 			queue.push(song);
+			message.channel.isSendable() &&
 			message.channel.send("Moved song to the back of the queue!");
 		} else {
-			message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
+			wrapper.messageManager.send("invalidArgument", message.channel, settings);
 		}
 	} else {
 		// if position is greater than queue length we send an error message
-		message.channel.send({ embeds: [wrapper.messageManager.outOfScope("position")] });
+		wrapper.messageManager.send("outOfScope", message.channel, "position");
 	}
 }

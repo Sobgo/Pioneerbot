@@ -23,7 +23,7 @@ export const play = async (guildId: string, wrapper: Wrapper, message: Message, 
 	if (args.length != 0) {
 		const result = await ytsr(query, { user: message.member });
 		if (result.length < 1) {
-			message.channel.send({ embeds: [wrapper.messageManager.noResult()] });
+			wrapper.messageManager.send("noResult", message.channel);
 			return;
 		}
 		const song = result[0];
@@ -34,10 +34,10 @@ export const play = async (guildId: string, wrapper: Wrapper, message: Message, 
 			queue.next();
 			if (queue.current) queue.playResource(queue.current);
 		} else {
-			message.channel.send({ embeds: [wrapper.messageManager.queueAdd([song], queue.length - 1)] });
+			wrapper.messageManager.send("queueAdd", message.channel, [song], queue.length - 1);
 		}
 	} else {
 		// if no query then show currently playing song
-		message.channel.send({ embeds: [wrapper.messageManager.play(queue.current)] });
+		wrapper.messageManager.send("play", message.channel, queue.current);
 	}
 }

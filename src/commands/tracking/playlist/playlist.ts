@@ -32,7 +32,7 @@ export const playlist = async (guildId: string, wrapper: Wrapper, message: Messa
 	const playlistId = parseInt(args[0]);
 
 	if (!playlistId || isNaN(playlistId)) {
-		message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
+		wrapper.messageManager.send("invalidArgument", message.channel, settings);
 		return;
 	}
 
@@ -40,7 +40,7 @@ export const playlist = async (guildId: string, wrapper: Wrapper, message: Messa
 		const command = args[1];
 
 		if (!await db.checkPlaylist(playlistId, guildId)) {
-			message.channel.send({ embeds: [wrapper.messageManager.noPlaylist(playlistId.toString())] });
+			wrapper.messageManager.send("noPlaylist", message.channel, playlistId.toString());
 			return;
 		}
 
@@ -51,7 +51,7 @@ export const playlist = async (guildId: string, wrapper: Wrapper, message: Messa
 			while (songs.length > 0) {
 				// divide result into messages with max 50 songs each
 				const chunk = songs.splice(0, 50);
-				message.channel.send({ embeds: [wrapper.messageManager.playlist(chunk, counter)] });
+				wrapper.messageManager.send("playlist", message.channel, chunk, counter);
 				counter += 50;
 			}
 			return;
@@ -72,12 +72,13 @@ export const playlist = async (guildId: string, wrapper: Wrapper, message: Messa
 				wrapper.commandManager.proxyInvoke("playlistplay", guildId, wrapper, message, args);
 				break;
 			}
+
 			default: {
-				message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
+				wrapper.messageManager.send("invalidArgument", message.channel, settings);
 				break;
 			}
 		}
 	} else {
-		message.channel.send({ embeds: [wrapper.messageManager.trackingRequired()] });
+		wrapper.messageManager.send("trackingRequired", message.channel);
 	}
 }

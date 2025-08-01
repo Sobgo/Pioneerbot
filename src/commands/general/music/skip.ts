@@ -22,12 +22,12 @@ export const skip = async (guildId: string, wrapper: Wrapper, message: Message, 
 	const count = args[0] ? parseInt(args[0]) : 1;
 
 	if (isNaN(count)) {
-		message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
+		wrapper.messageManager.send("invalidArgument", message.channel, settings);
 		return;
 	}
 
 	if (count < 1) {
-		message.channel.send({ embeds: [wrapper.messageManager.outOfScope()] });
+		wrapper.messageManager.send("outOfScope", message.channel);
 		return;
 	}
 
@@ -35,9 +35,9 @@ export const skip = async (guildId: string, wrapper: Wrapper, message: Message, 
 		// removes count - 1 songs from queue because currently playing song is included in count
 		const songs = [queue.current, ...queue.remove(0, Math.min(count - 1, queue.length))];
 		// skips currently playing song and sets new one if queue is not empty
-		queue.player.stop();
-		message.channel.send({ embeds: [wrapper.messageManager.skipped(songs)] });
+		if (queue.player) queue.player.stop();
+		wrapper.messageManager.send("skipped", message.channel, songs);
 	} else {
-		message.channel.send({ embeds: [wrapper.messageManager.queueEmpty()] });
+		wrapper.messageManager.send("queueEmpty", message.channel);
 	}
 }

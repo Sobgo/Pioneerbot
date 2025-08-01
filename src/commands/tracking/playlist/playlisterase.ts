@@ -16,11 +16,10 @@ export const playlisterase = async (guildId: string, wrapper: Wrapper, message: 
 			const song = await db.getSong(ytid);
 			const playlist = await db.getPlaylist(playlistId);
 			if (playlist == null || song == null) return;
-
-			message.channel.send({ embeds: [wrapper.messageManager.removedFromPlaylist(playlist, song)] });
+			wrapper.messageManager.send("removedFromPlaylist", message.channel, playlist, song);
 			await db.removeFromPlaylist(playlistId, ytid);
 		} else {
-			message.channel.send({ embeds: [wrapper.messageManager.invalidURL(link)] });
+			wrapper.messageManager.send("invalidURL", message.channel, link);
 			return;
 		}
 	} else {
@@ -31,7 +30,7 @@ export const playlisterase = async (guildId: string, wrapper: Wrapper, message: 
 		const playlist = await db.getPlaylist(playlistId);
 		if (playlist == null || song == null) return;
 
-		message.channel.send({ embeds: [wrapper.messageManager.removedFromPlaylist(playlist, song)] });
+		wrapper.messageManager.send("removedFromPlaylist", message.channel, playlist, song);
 
 		const ytid = getVideoId(song.url);
 		await db.removeFromPlaylist(playlistId, ytid);

@@ -34,21 +34,20 @@ export const link = async (guildId: string, wrapper: Wrapper, message: Message, 
 				result = [front]; // 0
 			} else {
 				// "nothing playing"
-				message.channel.send({ embeds: [wrapper.messageManager.play()] });
+				wrapper.messageManager.send("play", message.channel);
 				return;
 			}
 		} else {
-			message.channel.send({ embeds: [wrapper.messageManager.noQuery()] });
+			wrapper.messageManager.send("noQuery", message.channel);
 			return;
 		}
 	} else {
 		if (isNaN(position)) {
-			message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
-			return;
+			wrapper.messageManager.send("invalidArgument", message.channel, settings);
 		}
 
 		if (position < 0) {
-			message.channel.send({ embeds: [wrapper.messageManager.outOfScope("position")] });
+			wrapper.messageManager.send("outOfScope", message.channel, "position");
 			return;
 		}
 
@@ -56,23 +55,28 @@ export const link = async (guildId: string, wrapper: Wrapper, message: Message, 
 			result = await ytsr(query); // 2
 			if (queue) queue.cachedResult = result;
 			if (!result) {
-				message.channel.send({ embeds: [wrapper.messageManager.noResult()] });
+				wrapper.messageManager.send("noResult", message.channel);
 				return;
 			}
 		} else {
 			if (!queue || queue.cachedResult.length < 1) {
-				message.channel.send({ embeds: [wrapper.messageManager.noQuery()] });
+				wrapper.messageManager.send("noQuery", message.channel);
 				return;
 			}
 			result = queue.cachedResult; // 1
 		}
 
 		if (position >= result.length) {
-			message.channel.send({ embeds: [wrapper.messageManager.outOfScope("position")] });
+			wrapper.messageManager.send("outOfScope", message.channel, "position");
 			return;
 		}
 	}
 
 	const song = position == null ? result[0] : result[position];
-	return message.channel.send(song.url);
+	console.log(song);
+	try {
+	message.channel.isSendable() && message.channel.send(song.url);
+	} catch (error) {
+		console.error(error);
+	}
 }

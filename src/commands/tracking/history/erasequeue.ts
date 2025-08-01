@@ -23,12 +23,12 @@ export const erasequeue = async (guildId: string, wrapper: Wrapper, message: Mes
 			const position = parseInt(args[0]) - 1;
 
 			if (isNaN(position)) {
-				message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
+				wrapper.messageManager.send("invalidArgument", message.channel, settings);
 				return;
 			}
 
 			if (position < 0 || position >= queue.length) {
-				message.channel.send({ embeds: [wrapper.messageManager.outOfScope()] });
+				wrapper.messageManager.send("outOfScope", message.channel);
 				return;
 			}
 
@@ -42,14 +42,14 @@ export const erasequeue = async (guildId: string, wrapper: Wrapper, message: Mes
 				const ytid = getVideoId(song.url);
 				db.removeFromPlaylist(playlistId, ytid);
 				queue.remove(position);
-				message.channel.send({ embeds: [wrapper.messageManager.erased(song)] });
+				wrapper.messageManager.send("erased", message.channel, song);
 			}
 			else {
-				message.channel.send({ embeds: [wrapper.messageManager.noChannelBot()] });
+				wrapper.messageManager.send("noChannelBot", message.channel);
 			}
 		}
 	}
 	else {
-		message.channel.send({ embeds: [wrapper.messageManager.trackingRequired()] });
+		wrapper.messageManager.send("trackingRequired", message.channel);
 	}
 }

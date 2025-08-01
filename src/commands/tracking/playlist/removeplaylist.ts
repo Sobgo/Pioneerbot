@@ -22,9 +22,9 @@ export const removeplaylist = async (guildId: string, wrapper: Wrapper, message:
 		const playlist = await wrapper.databaseManager.getPlaylist(id);
 		if (!playlist) return;
 		await wrapper.databaseManager.removePlaylist(id);
-		message.channel.send({ embeds: [wrapper.messageManager.playlistRemoved(playlist)] });
+		wrapper.messageManager.send("playlistRemoved", message.channel, playlist);
 	}
 	else {
-		message.channel.send({ embeds: [wrapper.messageManager.trackingRequired()] });
+		wrapper.messageManager.send("trackingRequired", message.channel);
 	}
 }

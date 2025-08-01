@@ -21,10 +21,10 @@ export const addplaylist = async (guildId: string, wrapper: Wrapper, message: Me
 	if (guild) {
 		const playlist = await wrapper.databaseManager.addPlaylist(guildId, name);
 		if (playlist) {
-			message.channel.send({ embeds: [wrapper.messageManager.playlistCreated(playlist)] });
+			wrapper.messageManager.send("playlistCreated", message.channel, playlist);
 		}
 	}
 	else {
-		message.channel.send({ embeds: [wrapper.messageManager.trackingRequired()] });
+		wrapper.messageManager.send("trackingRequired", message.channel);
 	}
 }

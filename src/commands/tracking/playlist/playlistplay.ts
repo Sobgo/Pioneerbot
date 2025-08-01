@@ -17,7 +17,7 @@ export const playlistplay = async (guildId: string, wrapper: Wrapper, message: M
 	if (!queue) return;
 
 	if (isNaN(amount)) {
-		message.channel.send({ embeds: [wrapper.messageManager.invalidArguments(settings)] });
+		wrapper.messageManager.send("invalidArgument", message.channel, settings);
 		return;
 	}
 
@@ -33,7 +33,7 @@ export const playlistplay = async (guildId: string, wrapper: Wrapper, message: M
 	while (result.length > 0) {
 		// divide result into messages with max 50 songs each
 		const chunk = result.splice(0, 50);
-		message.channel.send({ embeds: [wrapper.messageManager.queueAdd(chunk, queue.length)] });
+		wrapper.messageManager.send("queueAdd", message.channel, chunk, queue.length);
 		queue.push(chunk);
 	}
 }
