@@ -1,14 +1,14 @@
 "use strict"
 
-import { 
-	AudioPlayer, 
-	AudioPlayerState, 
-	AudioPlayerStatus, 
-	createAudioPlayer, 
-	createAudioResource, 
-	entersState, 
-	joinVoiceChannel, 
-	VoiceConnection, 
+import {
+	AudioPlayer,
+	AudioPlayerState,
+	AudioPlayerStatus,
+	createAudioPlayer,
+	createAudioResource,
+	entersState,
+	joinVoiceChannel,
+	VoiceConnection,
 	VoiceConnectionStatus
 } from "@discordjs/voice";
 import { ChannelType, Message, VoiceBasedChannel, TextBasedChannel, SendableChannels } from "discord.js";
@@ -104,6 +104,12 @@ export class GuildQueue extends Queue {
 					this.wrapper.messageManager.send("play", this.textChannel as TextBasedChannel, song);
 				}
 			});
+
+			if (this.wrapper.verbose) {
+				this.player.on("debug", (message) => {
+					console.log(message);
+				});
+			}
 		}
 
 		try {
@@ -124,13 +130,15 @@ export class GuildQueue extends Queue {
 	}
 
 	public async destroyConnection() {
+		this.player?.stop();
+		this.player = null;
+
 		this.connection?.disconnect();
 		this.connection?.destroy();
 		this.connection = null;
+
 		this.voiceChannelId = null;
 		this.voiceChannelName = null;
-		this.player?.stop();
-		this.player = null;
 	}
 
 	public playResource(song: Song) {
@@ -140,8 +148,12 @@ export class GuildQueue extends Queue {
 			this.addToDatabase(song);
 		}
 
-		const stream = ytdl(song.url, FLAGS, { stdio: ["ignore", "pipe", "ignore"] });
-		
+		const stream = ytdl(song.url, FLAGS as any, { stdio: ["ignore", "pipe", "pipe"] });
+
+		stream.stderr?.on("data", (data) => {
+			if (this.wrapper.verbose) console.error(data.toString());
+		});
+
 		stream.catch((err) => {
 			if (err.exitCode === 1) return;
 			if (this.wrapper.verbose) console.error(err);
@@ -165,7 +177,7 @@ export class GuildQueue extends Queue {
 
 				if (playlistId) {
 					await db.addToPlaylist(playlistId, song);
-					await db.updateSongPLaytime(getVideoId(song.url), playlistId);
+					await db.updateSongPlaytime(getVideoId(song.url), playlistId);
 				}
 			}
 		}

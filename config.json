@@ -7,6 +7,9 @@
     "quiet": true,
     "format": "bestaudio",
     "limitRate": "100K",
-    "bufferSize": "64K"
+    "bufferSize": "64K",
+    "jsRuntimes": "node:/usr/local/bin/node",
+    "rmCacheDir": true,
+    "extractorArgs": "youtube:player_client=web_embedded"
   }
 }

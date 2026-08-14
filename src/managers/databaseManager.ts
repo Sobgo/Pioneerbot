@@ -248,7 +248,7 @@ export class databaseManager {
 		return converted.filter((s): s is Song => s != null);
 	}
 
-	public async updateSongPLaytime(ytid: string, playlistId: number, date: Date = new Date()) {
+	public async updateSongPlaytime(ytid: string, playlistId: number, date: Date = new Date()) {
 		// find content id
 		const content = await this.db.content.findFirst({
 			where: { AND: { playlist_id: playlistId, song_ytid: ytid } }

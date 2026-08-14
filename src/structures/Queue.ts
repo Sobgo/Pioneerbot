@@ -13,12 +13,20 @@ export class Queue {
 	public get length() {
 		return this.songs.length;
 	}
-	
+
 	/**
 	 * Returns true if Queue is empty, false otherwise.
 	 */
 	public empty() {
 		return this.length === 0;
+	}
+
+	/**
+	 * Removes all songs from a Queue and sets current song to null.
+	 */
+	public clear() {
+		this.songs = [];
+		this.current = null;
 	}
 
 	/**
@@ -107,7 +115,7 @@ export class Queue {
 	 * Returns song at `[position]` in a Queue. If position is out of range, undefined is returned.
 	 * @param position - Position of a song in a Queue.
 	 */
-	public at (position: number): Song | undefined {
+	public at(position: number): Song | undefined {
 		return this.songs[position];
 	}
 

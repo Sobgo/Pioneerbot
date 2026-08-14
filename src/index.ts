@@ -5,7 +5,7 @@ import sqlite3 from 'sqlite3';
 import { createInterface } from 'readline';
 import { writeFile, statSync } from 'fs';
 
-import { Wrapper} from '@/structures/Wrapper';
+import { Wrapper } from '@/structures/Wrapper';
 import { GuildQueue } from '@/structures/GuildQueue';
 
 import config from 'config';
@@ -35,7 +35,7 @@ const init = () => {
 			input: process.stdin,
 			output: process.stdout
 		});
-		
+
 		rli.question("Please enter your discord api token: ", (answer) => {
 			try { wrapper.client.login(answer); } catch { console.error("Failed to login"); return; }
 			rli.close();
@@ -49,7 +49,7 @@ const init = () => {
 	}
 };
 
-wrapper.client.on('ready', async () => {
+wrapper.client.on('clientReady', async () => {
 	// if loged in successfully then save config
 	if (wrapper.client.user != null) {
 		writeFile('./config.json', JSON.stringify(config, null, 2), (err) => {
@@ -68,7 +68,7 @@ wrapper.client.on('ready', async () => {
 
 	if (config.status?.length > 0) {
 		wrapper.client.user?.setActivity(config.status, { type: ActivityType.Playing });
-	} 
+	}
 });
 
 // prefixed commands 

@@ -19,6 +19,7 @@ export const leave = async (guildId: string, wrapper: Wrapper, _message: Message
 	if (!queue.tracking) {
 		wrapper.remove(guildId);
 	} else {
+		queue.clear();
 		queue.destroyConnection();
 	}
 }
